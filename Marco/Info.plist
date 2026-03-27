@@ -4,6 +4,8 @@
 <dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Marco uses Bluetooth to discover nearby contacts in emergency situations when cell service is unavailable.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Marco uses your compass heading to point you toward nearby contacts.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Marco needs access to your contacts to identify nearby people you know.</string>
 	<key>UIBackgroundModes</key>

@@ -26,6 +26,7 @@
 		AA000024 /* LandmarkTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000024 /* LandmarkTracker.swift */; };
 		AA000025 /* PositionEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* PositionEstimator.swift */; };
 		AA000026 /* DemoRadarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000026 /* DemoRadarView.swift */; };
+		AA000027 /* HeadingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000027 /* HeadingManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -50,6 +51,7 @@
 		AB000024 /* LandmarkTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkTracker.swift; sourceTree = "<group>"; };
 		AB000025 /* PositionEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionEstimator.swift; sourceTree = "<group>"; };
 		AB000026 /* DemoRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoRadarView.swift; sourceTree = "<group>"; };
+		AB000027 /* HeadingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadingManager.swift; sourceTree = "<group>"; };
 		AC000001 /* Marco.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marco.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -132,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				AB000010 /* CryptoUtils.swift */,
+				AB000027 /* HeadingManager.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -259,6 +262,7 @@
 				AA000024 /* LandmarkTracker.swift in Sources */,
 				AA000025 /* PositionEstimator.swift in Sources */,
 				AA000026 /* DemoRadarView.swift in Sources */,
+				AA000027 /* HeadingManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

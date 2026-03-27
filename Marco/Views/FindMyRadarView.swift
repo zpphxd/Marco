@@ -176,6 +176,8 @@ struct FindMyRadarView: View {
     @State private var arrowRotation: Double = 0
     @State private var hapticTimer: Timer?
     @State private var dialRotation: Double = 0
+    @StateObject private var headingManager = HeadingManager()
+    @State private var targetBearing: Double = 0 // estimated bearing to target
 
     private let compassSize: CGFloat = 280
 
@@ -244,15 +246,23 @@ struct FindMyRadarView: View {
             }
         }
         .onAppear {
+            headingManager.start()
             startHaptics()
             updateArrow()
         }
         .onDisappear {
+            headingManager.stop()
             hapticTimer?.invalidate()
         }
         .onChange(of: contact.rssi) { _, _ in
             updateArrow()
             updateHapticRate()
+        }
+        .onChange(of: headingManager.heading) { _, newHeading in
+            withAnimation(.easeOut(duration: 0.3)) {
+                // Dial shows real compass heading (rotate opposite so N stays "up" relative to world)
+                dialRotation = -newHeading
+            }
         }
     }
 
@@ -316,9 +326,9 @@ struct FindMyRadarView: View {
                 )
                 .frame(width: compassSize, height: compassSize)
 
-            // Compass dial (tick marks + labels) — rotates opposite to needle
+            // Compass dial (tick marks + labels) — tracks real compass heading
             CompassDial(size: compassSize)
-                .rotationEffect(.degrees(-dialRotation))
+                .rotationEffect(.degrees(dialRotation))
 
             // Sonar pulses from center
             ForEach(0..<3, id: \.self) { i in
@@ -462,24 +472,28 @@ struct FindMyRadarView: View {
     // MARK: - Arrow Animation
 
     private func updateArrow() {
-        let newRotation: Double
+        // Update target bearing estimate based on signal trend
         switch contact.trend {
         case .approaching:
-            newRotation = 0
+            // Signal getting stronger — we're heading toward them
+            // Lock the bearing to current heading (they're "ahead")
+            targetBearing = headingManager.heading
         case .receding:
-            newRotation = 180
+            // Signal getting weaker — they're behind us
+            // Bearing is opposite of current heading
+            targetBearing = headingManager.heading + 180
         case .stable:
-            // Gentle drift
-            newRotation = arrowRotation + Double.random(in: -20...20)
+            // Keep last known bearing, add slight drift
+            targetBearing += Double.random(in: -5...5)
         }
+
+        // Needle points toward target, adjusted for current heading
+        // Since the dial already rotates with heading, the needle shows
+        // the relative direction from our current facing
+        let relativeAngle = targetBearing - headingManager.heading
 
         withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
-            arrowRotation = newRotation
-        }
-
-        // Counter-rotate dial slightly for realism
-        withAnimation(.easeInOut(duration: 1.2)) {
-            dialRotation = newRotation * 0.3
+            arrowRotation = relativeAngle
         }
     }
 
