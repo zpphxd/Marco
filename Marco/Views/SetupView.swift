@@ -12,10 +12,10 @@ struct SetupView: View {
                         .font(.system(size: 48))
                         .foregroundColor(.blue)
 
-                    Text("Contact Radar")
+                    Text("Marco")
                         .font(.largeTitle.weight(.bold))
 
-                    Text("Find people you know nearby\nNo internet needed")
+                    Text("Find your people when it matters most.\nNo internet needed.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
