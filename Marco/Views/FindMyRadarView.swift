@@ -236,13 +236,9 @@ struct FindMyRadarView: View {
 
                 Spacer()
 
-                distanceCard
-                    .padding(.horizontal, 20)
-
-                statsRow
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
+                bottomPanel
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
             }
         }
         .onAppear {
@@ -402,71 +398,199 @@ struct FindMyRadarView: View {
         }
     }
 
-    // MARK: - Distance Card
+    // MARK: - Bottom Panel
 
-    private var distanceCard: some View {
-        VStack(spacing: 12) {
-            Text(distanceText)
-                .font(.system(size: 48, weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
+    @State private var showDetails = false
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.1))
-                        .frame(height: 6)
+    private var bottomPanel: some View {
+        VStack(spacing: 0) {
+            // Main distance display — always visible
+            Button {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    showDetails.toggle()
+                }
+            } label: {
+                HStack(spacing: 0) {
+                    // Proximity ring
+                    ZStack {
+                        // Track
+                        Circle()
+                            .stroke(Color.white.opacity(0.08), lineWidth: 5)
+                            .frame(width: 52, height: 52)
 
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(
-                            LinearGradient(
-                                colors: [.red, .orange, .yellow, .green],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                        // Progress arc
+                        Circle()
+                            .trim(from: 0, to: signalStrength)
+                            .stroke(
+                                AngularGradient(
+                                    colors: [proximityColor.opacity(0.4), proximityColor],
+                                    center: .center
+                                ),
+                                style: StrokeStyle(lineWidth: 5, lineCap: .round)
                             )
-                        )
-                        .frame(width: max(0, geo.size.width * signalStrength), height: 6)
-                        .animation(.easeInOut(duration: 0.3), value: signalStrength)
+                            .frame(width: 52, height: 52)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeInOut(duration: 0.5), value: signalStrength)
+
+                        // Percentage
+                        Text("\(Int(signalStrength * 100))")
+                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            .foregroundColor(proximityColor)
+                    }
+                    .padding(.leading, 16)
+
+                    // Distance + status
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(distanceText)
+                            .font(.system(size: 32, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white)
+
+                        Text(contact.distance.rawValue)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.4))
+                    }
+                    .padding(.leading, 14)
+
+                    Spacer()
+
+                    // Trend indicator
+                    VStack(spacing: 2) {
+                        Image(systemName: trendIcon)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(trendColor)
+
+                        Text(trendLabel)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(trendColor.opacity(0.8))
+                    }
+                    .padding(.trailing, 16)
+
+                    // Chevron
+                    Image(systemName: "chevron.compact.down")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.3))
+                        .rotationEffect(.degrees(showDetails ? 180 : 0))
+                        .padding(.trailing, 14)
+                }
+                .padding(.vertical, 16)
+            }
+            .buttonStyle(.plain)
+
+            // Expandable details
+            if showDetails {
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.horizontal, 16)
+
+                // Signal bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.white.opacity(0.06))
+                            .frame(height: 4)
+
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.red, .orange, .yellow, .green],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: max(0, geo.size.width * signalStrength), height: 4)
+                            .animation(.easeInOut(duration: 0.3), value: signalStrength)
+                    }
+                }
+                .frame(height: 4)
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+
+                // Detail grid
+                HStack(spacing: 0) {
+                    detailItem(value: "\(contact.rssi)", unit: "dBm", label: "Signal")
+                    detailDivider
+                    detailItem(value: String(format: "%.1f", distanceMeters), unit: "m", label: "Distance")
+                    detailDivider
+                    detailItem(value: "\(sharedLandmarks)", unit: "", label: "Landmarks")
+                    detailDivider
+                    detailItem(value: "\(hopCount)", unit: "", label: "Hops")
+                }
+                .padding(.top, 12)
+                .padding(.bottom, 14)
+
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(.ultraThinMaterial)
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.35), .white.opacity(0.03)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.8
+                )
+        )
+        .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
+    }
+
+    private var detailDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.08))
+            .frame(width: 0.5, height: 32)
+    }
+
+    private func detailItem(value: String, unit: String, label: String) -> some View {
+        VStack(spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
+                Text(value)
+                    .font(.system(.callout, design: .monospaced).weight(.semibold))
+                    .foregroundColor(.white)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.4))
                 }
             }
-            .frame(height: 6)
-            .padding(.horizontal, 20)
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundColor(.white.opacity(0.35))
         }
-        .padding(.vertical, 20)
-        .glassCard()
+        .frame(maxWidth: .infinity)
     }
 
     private var distanceText: String {
-        if distanceMeters < 1 { return "< 1m" }
+        if distanceMeters < 1 { return "<1m" }
         else if distanceMeters < 10 { return String(format: "%.1fm", distanceMeters) }
         else { return String(format: "%.0fm", distanceMeters) }
     }
 
-    // MARK: - Stats Row
-
-    private var statsRow: some View {
-        HStack(spacing: 8) {
-            statPill(icon: "wave.3.right", value: "\(contact.rssi)", label: "RSSI")
-            statPill(icon: "ruler", value: String(format: "%.1f", distanceMeters), label: "Meters")
-            statPill(icon: "mappin.and.ellipse", value: "\(sharedLandmarks)", label: "Landmarks")
-            statPill(icon: "arrow.triangle.swap", value: "\(hopCount)", label: "Hops")
+    private var trendIcon: String {
+        switch contact.trend {
+        case .approaching: return "arrow.up.right"
+        case .receding: return "arrow.down.right"
+        case .stable: return "equal"
         }
     }
 
-    private func statPill(icon: String, value: String, label: String) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.5))
-            Text(value)
-                .font(.system(.callout, design: .monospaced).weight(.bold))
-                .foregroundColor(.white)
-            Text(label)
-                .font(.system(size: 9))
-                .foregroundColor(.white.opacity(0.4))
+    private var trendColor: Color {
+        switch contact.trend {
+        case .approaching: return .green
+        case .receding: return .red
+        case .stable: return .white.opacity(0.4)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .glassCard(cornerRadius: 14)
+    }
+
+    private var trendLabel: String {
+        switch contact.trend {
+        case .approaching: return "CLOSER"
+        case .receding: return "FARTHER"
+        case .stable: return "STABLE"
+        }
     }
 
     // MARK: - Arrow Animation
