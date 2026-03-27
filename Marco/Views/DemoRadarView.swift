@@ -70,11 +70,10 @@ struct DemoRadarView: View {
     }
 
     private func startSimulation() {
-        // Simulate walking toward then away from the contact
-        timer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { _ in
-            // Add some noise
-            let noise = Int.random(in: -3...3)
-            simulatedRSSI += (direction * 2) + noise
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            let noise = Int.random(in: -2...2)
+            // Stronger steps so trend crosses the 8 dBm threshold clearly
+            simulatedRSSI += (direction * 4) + noise
 
             // Bounce between close and far
             if simulatedRSSI > -35 {
@@ -83,7 +82,6 @@ struct DemoRadarView: View {
                 direction = 1
             }
 
-            // Clamp
             simulatedRSSI = min(-30, max(-95, simulatedRSSI))
 
             rssiHistory.append(simulatedRSSI)
