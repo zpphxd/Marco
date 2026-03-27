@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var viewModel = RadarViewModel()
     @State private var showSetup = false
+    @State private var showDemo = false
 
     var body: some View {
         NavigationStack {
@@ -13,18 +14,30 @@ struct ContentView: View {
                     radarView
                 }
             }
-            .navigationTitle("Contact Radar")
+            .navigationTitle("Marco")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                if !viewModel.myHash.isEmpty {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        showSetup.toggle()
+                        showDemo = true
                     } label: {
-                        Image(systemName: "gearshape")
+                        Image(systemName: "play.circle")
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if !viewModel.myHash.isEmpty {
+                        Button {
+                            showSetup.toggle()
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showDemo) {
+                DemoRadarView()
             }
             .sheet(isPresented: $showSetup) {
                 NavigationStack {
