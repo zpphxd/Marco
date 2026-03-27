@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DemoRadarView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var demoViewModel = RadarViewModel()
     @State private var simulatedRSSI: Int = -85
     @State private var rssiHistory: [Int] = [-85]
     @State private var timer: Timer?
@@ -23,7 +24,9 @@ struct DemoRadarView: View {
     var body: some View {
         ZStack {
             FindMyRadarView(
-                contact: demoContact,
+                contactID: nil,
+                viewModel: demoViewModel,
+                contactOverride: demoContact,
                 sharedLandmarks: 7,
                 hopCount: 0,
                 meshDistance: nil

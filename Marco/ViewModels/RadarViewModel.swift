@@ -28,6 +28,7 @@ class RadarViewModel: ObservableObject {
 
     init() {
         scanner.delegate = self
+        contactManager.checkExistingAuthorization()
     }
 
     func startRadar() {
@@ -142,15 +143,27 @@ class RadarViewModel: ObservableObject {
         if let index = nearbyContacts.firstIndex(where: { $0.id == id }) {
             nearbyContacts[index].lastSeen = Date()
         } else {
+            // For mesh contacts, rssiAtFind of 0 means "found self" — estimate
+            // distance from hops or landmarks instead of using raw RSSI
+            let effectiveRSSI = rssiAtFind == 0 ? -80 : rssiAtFind
+            let meshDist: DistanceEstimate = meshDistance.map { dist in
+                switch dist {
+                case ..<2: return .veryClose
+                case ..<5: return .nearby
+                case ..<15: return .inRange
+                default: return .far
+                }
+            } ?? .from(rssi: effectiveRSSI)
+
             let nearby = NearbyContact(
                 id: id,
                 name: name,
                 phoneNumber: contactManager.lookup(hash)?.phoneNumber,
-                rssi: rssiAtFind,
-                distance: DistanceEstimate.from(rssi: rssiAtFind),
+                rssi: effectiveRSSI,
+                distance: meshDist,
                 firstSeen: Date(),
                 lastSeen: Date(),
-                rssiHistory: [rssiAtFind]
+                rssiHistory: [effectiveRSSI]
             )
             nearbyContacts.append(nearby)
             status = .found

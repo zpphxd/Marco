@@ -23,6 +23,14 @@ class ContactHashManager: ObservableObject {
 
     private let store = CNContactStore()
 
+    func checkExistingAuthorization() {
+        let status = CNContactStore.authorizationStatus(for: .contacts)
+        if status == .authorized || status == .limited {
+            isAuthorized = true
+            loadAndHashContacts()
+        }
+    }
+
     func requestAccess() async {
         do {
             let granted = try await store.requestAccess(for: .contacts)

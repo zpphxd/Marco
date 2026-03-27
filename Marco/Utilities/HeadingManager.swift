@@ -1,6 +1,7 @@
 import Foundation
 import CoreLocation
 
+@MainActor
 class HeadingManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var heading: Double = 0 // degrees from magnetic north
 
@@ -23,10 +24,10 @@ class HeadingManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.stopUpdatingHeading()
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
         // Use true heading if available, otherwise magnetic
         let h = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
-        DispatchQueue.main.async {
+        Task { @MainActor in
             self.heading = h
         }
     }

@@ -4,6 +4,7 @@ struct ContentView: View {
     @StateObject private var viewModel = RadarViewModel()
     @State private var showSetup = false
     @State private var showDemo = false
+    @State private var pulseActive = false
 
     var body: some View {
         NavigationStack {
@@ -94,12 +95,19 @@ struct ContentView: View {
                         Circle()
                             .stroke(statusColor.opacity(0.3), lineWidth: 2)
                             .frame(width: 140, height: 140)
-                            .scaleEffect(1.3)
-                            .opacity(0)
-                            .animation(
-                                .easeOut(duration: 1.5).repeatForever(autoreverses: false),
-                                value: viewModel.isRadarActive
-                            )
+                            .scaleEffect(pulseActive ? 1.3 : 1.0)
+                            .opacity(pulseActive ? 0 : 0.6)
+                            .onAppear {
+                                withAnimation(
+                                    .easeOut(duration: 1.5)
+                                    .repeatForever(autoreverses: false)
+                                ) {
+                                    pulseActive = true
+                                }
+                            }
+                            .onDisappear {
+                                pulseActive = false
+                            }
                     }
 
                     Image(systemName: viewModel.isRadarActive
@@ -188,7 +196,8 @@ struct ContentView: View {
                     ForEach(known) { contact in
                         NavigationLink {
                             FindMyRadarView(
-                                contact: contact,
+                                contactID: contact.id,
+                                viewModel: viewModel,
                                 sharedLandmarks: viewModel.landmarkTracker.landmarkCount,
                                 hopCount: contact.id.hasPrefix("mesh-") ? 1 : 0
                             )

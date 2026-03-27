@@ -168,10 +168,28 @@ struct PulsingRing: View {
 // MARK: - Main Radar View
 
 struct FindMyRadarView: View {
-    let contact: NearbyContact
+    /// When driven by a live viewModel, contactID + viewModel are set and
+    /// the view reads the latest NearbyContact each body evaluation.
+    /// When driven by DemoRadarView, contactOverride is set instead.
+    let contactID: String?
+    @ObservedObject var viewModel: RadarViewModel
+    var contactOverride: NearbyContact? = nil
     var sharedLandmarks: Int = 0
     var hopCount: Int = 0
     var meshDistance: Double? = nil
+
+    /// Resolve the live contact from the view model, falling back to the override (demo).
+    private var contact: NearbyContact {
+        if let id = contactID,
+           let live = viewModel.nearbyContacts.first(where: { $0.id == id }) {
+            return live
+        }
+        return contactOverride ?? NearbyContact(
+            id: "missing", name: "Lost Signal", phoneNumber: nil,
+            rssi: -100, distance: .unknown, firstSeen: Date(),
+            lastSeen: Date(), rssiHistory: []
+        )
+    }
 
     @State private var arrowRotation: Double = 0
     @State private var hapticTimer: Timer?
