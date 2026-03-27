@@ -34,24 +34,106 @@ extension View {
     }
 }
 
-// MARK: - Compass Arrow Shape
+// MARK: - Compass Needle Shape (classic dual-tone)
 
-struct CompassArrow: Shape {
+struct CompassNeedle: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let w = rect.width
-        let h = rect.height
+        let cx = rect.midX
+        let cy = rect.midY
+        let needleWidth: CGFloat = rect.width * 0.14
+        let needleLength: CGFloat = rect.height * 0.42
 
-        path.move(to: CGPoint(x: w * 0.5, y: 0))
-        path.addLine(to: CGPoint(x: w * 0.65, y: h * 0.35))
-        path.addLine(to: CGPoint(x: w * 0.55, y: h * 0.3))
-        path.addLine(to: CGPoint(x: w * 0.55, y: h))
-        path.addLine(to: CGPoint(x: w * 0.45, y: h))
-        path.addLine(to: CGPoint(x: w * 0.45, y: h * 0.3))
-        path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.35))
+        // North half (pointed tip)
+        path.move(to: CGPoint(x: cx, y: cy - needleLength))
+        path.addLine(to: CGPoint(x: cx + needleWidth, y: cy))
+        path.addLine(to: CGPoint(x: cx - needleWidth, y: cy))
         path.closeSubpath()
 
         return path
+    }
+}
+
+struct CompassNeedleSouth: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let cx = rect.midX
+        let cy = rect.midY
+        let needleWidth: CGFloat = rect.width * 0.14
+        let needleLength: CGFloat = rect.height * 0.32
+
+        // South half (shorter, wider)
+        path.move(to: CGPoint(x: cx, y: cy + needleLength))
+        path.addLine(to: CGPoint(x: cx + needleWidth, y: cy))
+        path.addLine(to: CGPoint(x: cx - needleWidth, y: cy))
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+// MARK: - Compass Dial
+
+struct CompassDial: View {
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            // Outer ring
+            Circle()
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.3), .white.opacity(0.05)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 2
+                )
+                .frame(width: size, height: size)
+
+            // Degree tick marks
+            ForEach(0..<72, id: \.self) { i in
+                let isMajor = i % 18 == 0 // N, E, S, W
+                let isMinor = i % 9 == 0  // NE, SE, SW, NW
+                let length: CGFloat = isMajor ? 14 : isMinor ? 10 : 5
+                let width: CGFloat = isMajor ? 2 : 1
+                let opacity: Double = isMajor ? 0.7 : isMinor ? 0.4 : 0.15
+
+                Rectangle()
+                    .fill(Color.white.opacity(opacity))
+                    .frame(width: width, height: length)
+                    .offset(y: -size / 2 + length / 2 + 4)
+                    .rotationEffect(.degrees(Double(i) * 5))
+            }
+
+            // Cardinal labels
+            ForEach(Array(["N", "E", "S", "W"].enumerated()), id: \.offset) { index, label in
+                Text(label)
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(label == "N" ? .red.opacity(0.9) : .white.opacity(0.5))
+                    .offset(y: -size / 2 + 30)
+                    .rotationEffect(.degrees(Double(index) * 90))
+            }
+
+            // Intercardinal labels
+            ForEach(Array(["NE", "SE", "SW", "NW"].enumerated()), id: \.offset) { index, label in
+                Text(label)
+                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.25))
+                    .offset(y: -size / 2 + 30)
+                    .rotationEffect(.degrees(45 + Double(index) * 90))
+            }
+
+            // Inner decorative ring
+            Circle()
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                .frame(width: size * 0.7, height: size * 0.7)
+
+            // Innermost ring
+            Circle()
+                .stroke(Color.white.opacity(0.05), lineWidth: 0.5)
+                .frame(width: size * 0.45, height: size * 0.45)
+        }
     }
 }
 
@@ -62,12 +144,12 @@ struct PulsingRing: View {
     let delay: Double
     let duration: Double
 
-    @State private var scale: CGFloat = 1.0
+    @State private var scale: CGFloat = 0.4
     @State private var opacity: Double = 0.6
 
     var body: some View {
         Circle()
-            .stroke(color, lineWidth: 2)
+            .stroke(color, lineWidth: 1.5)
             .scaleEffect(scale)
             .opacity(opacity)
             .onAppear {
@@ -76,7 +158,7 @@ struct PulsingRing: View {
                     .repeatForever(autoreverses: false)
                     .delay(delay)
                 ) {
-                    scale = 2.2
+                    scale = 1.8
                     opacity = 0
                 }
             }
@@ -93,6 +175,9 @@ struct FindMyRadarView: View {
 
     @State private var arrowRotation: Double = 0
     @State private var hapticTimer: Timer?
+    @State private var dialRotation: Double = 0
+
+    private let compassSize: CGFloat = 280
 
     private var signalStrength: Double {
         let clamped = min(max(Double(contact.rssi), -100), -30)
@@ -121,11 +206,17 @@ struct FindMyRadarView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.black, Color(white: 0.08)],
-                startPoint: .top,
-                endPoint: .bottom
+            // Background
+            Color.black.ignoresSafeArea()
+
+            // Subtle radial glow behind compass
+            RadialGradient(
+                colors: [proximityColor.opacity(0.08), .clear],
+                center: .center,
+                startRadius: 50,
+                endRadius: 250
             )
+            .offset(y: -40)
             .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -134,11 +225,12 @@ struct FindMyRadarView: View {
 
                 Spacer()
 
-                compassRadar
-                    .frame(height: 300)
+                // Compass
+                compassView
+                    .frame(width: compassSize + 40, height: compassSize + 40)
 
                 directionLabel
-                    .padding(.top, 20)
+                    .padding(.top, 16)
 
                 Spacer()
 
@@ -179,63 +271,107 @@ struct FindMyRadarView: View {
             }
 
             if hopCount > 0 {
-                Text("Found via mesh (\(hopCount) hop\(hopCount == 1 ? "" : "s"))")
-                    .font(.caption)
-                    .foregroundColor(.blue)
-                    .padding(.top, 2)
+                HStack(spacing: 4) {
+                    Image(systemName: "point.3.connected.trianglepath.dotted")
+                        .font(.caption2)
+                    Text("Via mesh (\(hopCount) hop\(hopCount == 1 ? "" : "s"))")
+                        .font(.caption)
+                }
+                .foregroundColor(.blue)
+                .padding(.top, 2)
             }
         }
     }
 
-    // MARK: - Compass Radar
+    // MARK: - Compass View
 
-    private var compassRadar: some View {
+    private var compassView: some View {
         ZStack {
-            ForEach(0..<3, id: \.self) { i in
-                PulsingRing(
-                    color: proximityColor,
-                    delay: Double(i) * 0.5,
-                    duration: pulseSpeed
+            // Glass compass bezel
+            Circle()
+                .fill(.ultraThinMaterial)
+                .frame(width: compassSize + 20, height: compassSize + 20)
+                .overlay(
+                    Circle()
+                        .stroke(
+                            LinearGradient(
+                                colors: [.white.opacity(0.4), .white.opacity(0.05), .white.opacity(0.2)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
                 )
-                .frame(width: 140, height: 140)
-            }
+                .shadow(color: .black.opacity(0.5), radius: 24, x: 0, y: 12)
 
-            ForEach(0..<3, id: \.self) { i in
-                Circle()
-                    .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
-                    .frame(
-                        width: CGFloat(100 + i * 60),
-                        height: CGFloat(100 + i * 60)
-                    )
-            }
-
+            // Inner dark face
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [proximityColor.opacity(0.3), .clear],
+                        colors: [Color(white: 0.12), Color(white: 0.06)],
                         center: .center,
-                        startRadius: 10,
-                        endRadius: 80
+                        startRadius: 0,
+                        endRadius: compassSize / 2
                     )
                 )
-                .frame(width: 160, height: 160)
+                .frame(width: compassSize, height: compassSize)
 
-            CompassArrow()
+            // Compass dial (tick marks + labels) — rotates opposite to needle
+            CompassDial(size: compassSize)
+                .rotationEffect(.degrees(-dialRotation))
+
+            // Sonar pulses from center
+            ForEach(0..<3, id: \.self) { i in
+                PulsingRing(
+                    color: proximityColor,
+                    delay: Double(i) * (pulseSpeed / 3),
+                    duration: pulseSpeed
+                )
+                .frame(width: compassSize * 0.35, height: compassSize * 0.35)
+            }
+
+            // Compass needle — north half (colored by proximity)
+            CompassNeedle()
                 .fill(
                     LinearGradient(
-                        colors: [proximityColor, proximityColor.opacity(0.6)],
+                        colors: [proximityColor, proximityColor.opacity(0.7)],
                         startPoint: .top,
+                        endPoint: .center
+                    )
+                )
+                .frame(width: compassSize * 0.85, height: compassSize * 0.85)
+                .shadow(color: proximityColor.opacity(0.5), radius: 10)
+                .rotationEffect(.degrees(arrowRotation))
+
+            // Compass needle — south half (dark)
+            CompassNeedleSouth()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.15), Color.white.opacity(0.05)],
+                        startPoint: .center,
                         endPoint: .bottom
                     )
                 )
-                .frame(width: 40, height: 120)
-                .shadow(color: proximityColor.opacity(0.6), radius: 12)
+                .frame(width: compassSize * 0.85, height: compassSize * 0.85)
                 .rotationEffect(.degrees(arrowRotation))
 
-            Circle()
-                .fill(proximityColor)
-                .frame(width: 16, height: 16)
-                .shadow(color: proximityColor, radius: 8)
+            // Center pivot
+            ZStack {
+                Circle()
+                    .fill(Color(white: 0.2))
+                    .frame(width: 20, height: 20)
+
+                Circle()
+                    .fill(proximityColor)
+                    .frame(width: 12, height: 12)
+                    .shadow(color: proximityColor, radius: 6)
+            }
+
+            // Distance overlay on compass face
+            Text(distanceText)
+                .font(.system(size: 16, weight: .bold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.8))
+                .offset(y: compassSize * 0.28)
         }
     }
 
@@ -328,12 +464,22 @@ struct FindMyRadarView: View {
     private func updateArrow() {
         let newRotation: Double
         switch contact.trend {
-        case .approaching: newRotation = 0
-        case .receding: newRotation = 180
-        case .stable: newRotation = arrowRotation + 15
+        case .approaching:
+            newRotation = 0
+        case .receding:
+            newRotation = 180
+        case .stable:
+            // Gentle drift
+            newRotation = arrowRotation + Double.random(in: -20...20)
         }
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+
+        withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
             arrowRotation = newRotation
+        }
+
+        // Counter-rotate dial slightly for realism
+        withAnimation(.easeInOut(duration: 1.2)) {
+            dialRotation = newRotation * 0.3
         }
     }
 
