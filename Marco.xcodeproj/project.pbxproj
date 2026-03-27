@@ -1,0 +1,357 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA000001 /* MarcoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001 /* MarcoApp.swift */; };
+		AA000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000002 /* ContentView.swift */; };
+		AA000003 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000003 /* SetupView.swift */; };
+		AA000004 /* NearbyContactRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000004 /* NearbyContactRow.swift */; };
+		AA000005 /* RadarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000005 /* RadarViewModel.swift */; };
+		AA000006 /* BLEScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006 /* BLEScanner.swift */; };
+		AA000007 /* BLEAdvertiser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000007 /* BLEAdvertiser.swift */; };
+		AA000008 /* AirDropParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000008 /* AirDropParser.swift */; };
+		AA000009 /* ContactHashManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000009 /* ContactHashManager.swift */; };
+		AA000010 /* CryptoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010 /* CryptoUtils.swift */; };
+		AA000011 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011 /* Models.swift */; };
+		AA000012 /* FindMyRadarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014 /* FindMyRadarView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AB000001 /* MarcoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarcoApp.swift; sourceTree = "<group>"; };
+		AB000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AB000003 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
+		AB000004 /* NearbyContactRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyContactRow.swift; sourceTree = "<group>"; };
+		AB000005 /* RadarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarViewModel.swift; sourceTree = "<group>"; };
+		AB000006 /* BLEScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEScanner.swift; sourceTree = "<group>"; };
+		AB000007 /* BLEAdvertiser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEAdvertiser.swift; sourceTree = "<group>"; };
+		AB000008 /* AirDropParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirDropParser.swift; sourceTree = "<group>"; };
+		AB000009 /* ContactHashManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactHashManager.swift; sourceTree = "<group>"; };
+		AB000010 /* CryptoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtils.swift; sourceTree = "<group>"; };
+		AB000011 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		AB000012 /* Marco.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Marco.entitlements; sourceTree = "<group>"; };
+		AB000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AB000014 /* FindMyRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindMyRadarView.swift; sourceTree = "<group>"; };
+		AC000001 /* Marco.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marco.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AD000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AE000001 = {
+			isa = PBXGroup;
+			children = (
+				AE000002 /* Marco */,
+				AE000010 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AE000002 /* Marco */ = {
+			isa = PBXGroup;
+			children = (
+				AB000001 /* MarcoApp.swift */,
+				AE000003 /* Views */,
+				AE000004 /* ViewModels */,
+				AE000005 /* Bluetooth */,
+				AE000006 /* Contacts */,
+				AE000007 /* Utilities */,
+				AE000008 /* Models */,
+				AB000012 /* Marco.entitlements */,
+				AB000013 /* Info.plist */,
+			);
+			path = Marco;
+			sourceTree = "<group>";
+		};
+		AE000003 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AB000002 /* ContentView.swift */,
+				AB000003 /* SetupView.swift */,
+				AB000004 /* NearbyContactRow.swift */,
+				AB000014 /* FindMyRadarView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		AE000004 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				AB000005 /* RadarViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		AE000005 /* Bluetooth */ = {
+			isa = PBXGroup;
+			children = (
+				AB000006 /* BLEScanner.swift */,
+				AB000007 /* BLEAdvertiser.swift */,
+				AB000008 /* AirDropParser.swift */,
+			);
+			path = Bluetooth;
+			sourceTree = "<group>";
+		};
+		AE000006 /* Contacts */ = {
+			isa = PBXGroup;
+			children = (
+				AB000009 /* ContactHashManager.swift */,
+			);
+			path = Contacts;
+			sourceTree = "<group>";
+		};
+		AE000007 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				AB000010 /* CryptoUtils.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		AE000008 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AB000011 /* Models.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AE000010 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AC000001 /* Marco.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AF000001 /* Marco */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1000001 /* Build configuration list for PBXNativeTarget "Marco" */;
+			buildPhases = (
+				AF000002 /* Sources */,
+				AD000001 /* Frameworks */,
+				AF000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Marco;
+			productName = Marco;
+			productReference = AC000001 /* Marco.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B0000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					AF000001 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+				};
+			};
+			buildConfigurationList = B1000002 /* Build configuration list for PBXProject "Marco" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AE000001;
+			productRefGroup = AE000010 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AF000001 /* Marco */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AF000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AF000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001 /* MarcoApp.swift in Sources */,
+				AA000002 /* ContentView.swift in Sources */,
+				AA000003 /* SetupView.swift in Sources */,
+				AA000004 /* NearbyContactRow.swift in Sources */,
+				AA000005 /* RadarViewModel.swift in Sources */,
+				AA000006 /* BLEScanner.swift in Sources */,
+				AA000007 /* BLEAdvertiser.swift in Sources */,
+				AA000008 /* AirDropParser.swift in Sources */,
+				AA000009 /* ContactHashManager.swift in Sources */,
+				AA000010 /* CryptoUtils.swift in Sources */,
+				AA000011 /* Models.swift in Sources */,
+				AA000012 /* FindMyRadarView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B2000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B2000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		B2000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Marco/Marco.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3Q5YCK6M5B;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Marco/Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.marco.findyourpeople;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B2000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Marco/Marco.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3Q5YCK6M5B;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Marco/Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.marco.findyourpeople;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B1000001 /* Build configuration list for PBXNativeTarget "Marco" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B2000003 /* Debug */,
+				B2000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1000002 /* Build configuration list for PBXProject "Marco" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B2000001 /* Debug */,
+				B2000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B0000001 /* Project object */;
+}
