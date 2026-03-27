@@ -52,14 +52,17 @@ struct NearbyContact: Identifiable {
     var rssiHistory: [Int]
 
     var trend: Trend {
-        guard rssiHistory.count >= 3 else { return .stable }
-        let recent = rssiHistory.suffix(3)
-        let avg = recent.reduce(0, +) / recent.count
-        let older = rssiHistory.prefix(max(1, rssiHistory.count - 3)).suffix(3)
-        let oldAvg = older.reduce(0, +) / older.count
-        let diff = avg - oldAvg
-        if diff > 5 { return .approaching }
-        if diff < -5 { return .receding }
+        guard rssiHistory.count >= 6 else { return .stable }
+        // Compare last 5 samples against the 5 before that
+        let recent = Array(rssiHistory.suffix(5))
+        let older = Array(rssiHistory.dropLast(5).suffix(5))
+        guard !recent.isEmpty && !older.isEmpty else { return .stable }
+        let recentAvg = recent.reduce(0, +) / recent.count
+        let olderAvg = older.reduce(0, +) / older.count
+        let diff = recentAvg - olderAvg
+        // Higher threshold (8 dBm) to avoid noise-triggered flicker
+        if diff > 8 { return .approaching }
+        if diff < -8 { return .receding }
         return .stable
     }
 
