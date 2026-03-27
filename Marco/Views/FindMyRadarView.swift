@@ -3,174 +3,108 @@ import SwiftUI
 import UIKit
 #endif
 
+// MARK: - Glass Effect Modifier
+
+struct GlassCard: ViewModifier {
+    var cornerRadius: CGFloat = 20
+
+    func body(content: Content) -> some View {
+        content
+            .background(.ultraThinMaterial)
+            .background(Color.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.white.opacity(0.5), .white.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.8
+                    )
+            )
+            .shadow(color: .black.opacity(0.3), radius: 16, x: 0, y: 8)
+    }
+}
+
+extension View {
+    func glassCard(cornerRadius: CGFloat = 20) -> some View {
+        modifier(GlassCard(cornerRadius: cornerRadius))
+    }
+}
+
+// MARK: - Compass Arrow Shape
+
+struct CompassArrow: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let w = rect.width
+        let h = rect.height
+
+        path.move(to: CGPoint(x: w * 0.5, y: 0))
+        path.addLine(to: CGPoint(x: w * 0.65, y: h * 0.35))
+        path.addLine(to: CGPoint(x: w * 0.55, y: h * 0.3))
+        path.addLine(to: CGPoint(x: w * 0.55, y: h))
+        path.addLine(to: CGPoint(x: w * 0.45, y: h))
+        path.addLine(to: CGPoint(x: w * 0.45, y: h * 0.3))
+        path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.35))
+        path.closeSubpath()
+
+        return path
+    }
+}
+
+// MARK: - Pulsing Ring
+
+struct PulsingRing: View {
+    let color: Color
+    let delay: Double
+    let duration: Double
+
+    @State private var scale: CGFloat = 1.0
+    @State private var opacity: Double = 0.6
+
+    var body: some View {
+        Circle()
+            .stroke(color, lineWidth: 2)
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(
+                    .easeOut(duration: duration)
+                    .repeatForever(autoreverses: false)
+                    .delay(delay)
+                ) {
+                    scale = 2.2
+                    opacity = 0
+                }
+            }
+    }
+}
+
+// MARK: - Main Radar View
+
 struct FindMyRadarView: View {
     let contact: NearbyContact
-    @State private var pulseScale: CGFloat = 1.0
-    @State private var pulseOpacity: Double = 0.8
-    @State private var ringPhase: Double = 0
-    @State private var lastHapticRSSI: Int = -100
+    var sharedLandmarks: Int = 0
+    var hopCount: Int = 0
+    var meshDistance: Double? = nil
+
+    @State private var arrowRotation: Double = 0
     @State private var hapticTimer: Timer?
 
-    // Smoothed signal (simple exponential moving average)
-    @State private var smoothedRSSI: Double = -80
-
     private var signalStrength: Double {
-        // Normalize RSSI to 0.0 - 1.0 range
-        // -30 = strongest realistic, -100 = weakest
         let clamped = min(max(Double(contact.rssi), -100), -30)
         return (clamped + 100) / 70
     }
 
     private var distanceMeters: Double {
-        // Rough RSSI to distance using log-distance path loss model
-        // Reference: RSSI = -50 at 1 meter (typical BLE)
-        let txPower: Double = -50
-        let n: Double = 2.5 // path loss exponent (2 = free space, 3-4 = indoors)
-        let ratio = (txPower - Double(contact.rssi)) / (10 * n)
+        if let mesh = meshDistance { return mesh }
+        let n: Double = 2.5
+        let ratio = (-50.0 - Double(contact.rssi)) / (10 * n)
         return pow(10, ratio)
     }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Contact info header
-            VStack(spacing: 4) {
-                Text(contact.name)
-                    .font(.title2.weight(.bold))
-
-                if let phone = contact.phoneNumber {
-                    Text(phone)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.top, 20)
-
-            Spacer()
-
-            // Radar visualization
-            ZStack {
-                // Outer rings (pulse outward)
-                ForEach(0..<3, id: \.self) { i in
-                    Circle()
-                        .stroke(ringColor.opacity(0.15 - Double(i) * 0.04), lineWidth: 1.5)
-                        .frame(width: ringSize(for: i), height: ringSize(for: i))
-                }
-
-                // Pulsing proximity circle
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                proximityColor.opacity(0.6),
-                                proximityColor.opacity(0.2),
-                                proximityColor.opacity(0.0)
-                            ],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: proximityRadius
-                        )
-                    )
-                    .frame(width: proximityRadius * 2, height: proximityRadius * 2)
-                    .scaleEffect(pulseScale)
-                    .opacity(pulseOpacity)
-
-                // Inner solid circle
-                Circle()
-                    .fill(proximityColor)
-                    .frame(width: innerCircleSize, height: innerCircleSize)
-                    .shadow(color: proximityColor.opacity(0.5), radius: 20)
-
-                // Arrow indicator
-                VStack(spacing: 4) {
-                    Image(systemName: trendIcon)
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-
-                    Text(distanceText)
-                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.white)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: 350)
-
-            Spacer()
-
-            // Bottom info
-            VStack(spacing: 12) {
-                // Direction feedback
-                Text(directionText)
-                    .font(.title3.weight(.semibold))
-                    .foregroundColor(proximityColor)
-                    .animation(.easeInOut(duration: 0.3), value: contact.trend)
-
-                // Signal details
-                HStack(spacing: 24) {
-                    VStack {
-                        Text("\(contact.rssi)")
-                            .font(.title3.weight(.bold).monospacedDigit())
-                        Text("RSSI")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-
-                    VStack {
-                        Text(String(format: "%.1fm", distanceMeters))
-                            .font(.title3.weight(.bold).monospacedDigit())
-                        Text("Est. Distance")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-
-                    VStack {
-                        Text(contact.distance.rawValue.components(separatedBy: " ").first ?? "")
-                            .font(.title3.weight(.bold))
-                        Text("Range")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(.bottom, 8)
-
-                // Signal strength bar
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.secondary.opacity(0.2))
-                            .frame(height: 8)
-
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(
-                                LinearGradient(
-                                    colors: [.red, .orange, .yellow, .green],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: geo.size.width * signalStrength, height: 8)
-                            .animation(.easeInOut(duration: 0.3), value: signalStrength)
-                    }
-                }
-                .frame(height: 8)
-                .padding(.horizontal, 40)
-            }
-            .padding(.bottom, 30)
-        }
-        .onAppear {
-            startPulseAnimation()
-            startHaptics()
-            smoothedRSSI = Double(contact.rssi)
-        }
-        .onDisappear {
-            hapticTimer?.invalidate()
-        }
-        .onChange(of: contact.rssi) { _, newValue in
-            // Exponential moving average
-            smoothedRSSI = smoothedRSSI * 0.7 + Double(newValue) * 0.3
-            updateHapticRate()
-        }
-    }
-
-    // MARK: - Computed Properties
 
     private var proximityColor: Color {
         switch signalStrength {
@@ -181,31 +115,137 @@ struct FindMyRadarView: View {
         }
     }
 
-    private var ringColor: Color {
-        proximityColor
+    private var pulseSpeed: Double {
+        max(0.4, 2.0 - signalStrength * 1.6)
     }
 
-    private var proximityRadius: CGFloat {
-        40 + CGFloat(signalStrength) * 80
-    }
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.black, Color(white: 0.08)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-    private var innerCircleSize: CGFloat {
-        30 + CGFloat(signalStrength) * 40
-    }
+            VStack(spacing: 0) {
+                contactHeader
+                    .padding(.top, 16)
 
-    private func ringSize(for index: Int) -> CGFloat {
-        let base = proximityRadius * 2 + 40
-        return base + CGFloat(index) * 50
-    }
+                Spacer()
 
-    private var distanceText: String {
-        if distanceMeters < 1 {
-            return "< 1m"
-        } else if distanceMeters < 10 {
-            return String(format: "%.1fm", distanceMeters)
-        } else {
-            return String(format: "%.0fm", distanceMeters)
+                compassRadar
+                    .frame(height: 300)
+
+                directionLabel
+                    .padding(.top, 20)
+
+                Spacer()
+
+                distanceCard
+                    .padding(.horizontal, 20)
+
+                statsRow
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
+            }
         }
+        .onAppear {
+            startHaptics()
+            updateArrow()
+        }
+        .onDisappear {
+            hapticTimer?.invalidate()
+        }
+        .onChange(of: contact.rssi) { _, _ in
+            updateArrow()
+            updateHapticRate()
+        }
+    }
+
+    // MARK: - Contact Header
+
+    private var contactHeader: some View {
+        VStack(spacing: 4) {
+            Text(contact.name)
+                .font(.title2.weight(.bold))
+                .foregroundColor(.white)
+
+            if let phone = contact.phoneNumber {
+                Text(phone)
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.6))
+            }
+
+            if hopCount > 0 {
+                Text("Found via mesh (\(hopCount) hop\(hopCount == 1 ? "" : "s"))")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    .padding(.top, 2)
+            }
+        }
+    }
+
+    // MARK: - Compass Radar
+
+    private var compassRadar: some View {
+        ZStack {
+            ForEach(0..<3, id: \.self) { i in
+                PulsingRing(
+                    color: proximityColor,
+                    delay: Double(i) * 0.5,
+                    duration: pulseSpeed
+                )
+                .frame(width: 140, height: 140)
+            }
+
+            ForEach(0..<3, id: \.self) { i in
+                Circle()
+                    .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+                    .frame(
+                        width: CGFloat(100 + i * 60),
+                        height: CGFloat(100 + i * 60)
+                    )
+            }
+
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [proximityColor.opacity(0.3), .clear],
+                        center: .center,
+                        startRadius: 10,
+                        endRadius: 80
+                    )
+                )
+                .frame(width: 160, height: 160)
+
+            CompassArrow()
+                .fill(
+                    LinearGradient(
+                        colors: [proximityColor, proximityColor.opacity(0.6)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 40, height: 120)
+                .shadow(color: proximityColor.opacity(0.6), radius: 12)
+                .rotationEffect(.degrees(arrowRotation))
+
+            Circle()
+                .fill(proximityColor)
+                .frame(width: 16, height: 16)
+                .shadow(color: proximityColor, radius: 8)
+        }
+    }
+
+    // MARK: - Direction Label
+
+    private var directionLabel: some View {
+        Text(directionText)
+            .font(.title3.weight(.semibold))
+            .foregroundColor(proximityColor)
+            .animation(.easeInOut(duration: 0.3), value: contact.trend.rawValue)
     }
 
     private var directionText: String {
@@ -216,23 +256,84 @@ struct FindMyRadarView: View {
         }
     }
 
-    private var trendIcon: String {
-        switch contact.trend {
-        case .approaching: return "arrow.down"
-        case .receding: return "arrow.up"
-        case .stable: return "circle.fill"
+    // MARK: - Distance Card
+
+    private var distanceCard: some View {
+        VStack(spacing: 12) {
+            Text(distanceText)
+                .font(.system(size: 48, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white.opacity(0.1))
+                        .frame(height: 6)
+
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [.red, .orange, .yellow, .green],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: max(0, geo.size.width * signalStrength), height: 6)
+                        .animation(.easeInOut(duration: 0.3), value: signalStrength)
+                }
+            }
+            .frame(height: 6)
+            .padding(.horizontal, 20)
+        }
+        .padding(.vertical, 20)
+        .glassCard()
+    }
+
+    private var distanceText: String {
+        if distanceMeters < 1 { return "< 1m" }
+        else if distanceMeters < 10 { return String(format: "%.1fm", distanceMeters) }
+        else { return String(format: "%.0fm", distanceMeters) }
+    }
+
+    // MARK: - Stats Row
+
+    private var statsRow: some View {
+        HStack(spacing: 8) {
+            statPill(icon: "wave.3.right", value: "\(contact.rssi)", label: "RSSI")
+            statPill(icon: "ruler", value: String(format: "%.1f", distanceMeters), label: "Meters")
+            statPill(icon: "mappin.and.ellipse", value: "\(sharedLandmarks)", label: "Landmarks")
+            statPill(icon: "arrow.triangle.swap", value: "\(hopCount)", label: "Hops")
         }
     }
 
-    // MARK: - Animations
+    private func statPill(icon: String, value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.5))
+            Text(value)
+                .font(.system(.callout, design: .monospaced).weight(.bold))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundColor(.white.opacity(0.4))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .glassCard(cornerRadius: 14)
+    }
 
-    private func startPulseAnimation() {
-        withAnimation(
-            .easeInOut(duration: 1.2)
-            .repeatForever(autoreverses: true)
-        ) {
-            pulseScale = 1.15
-            pulseOpacity = 0.4
+    // MARK: - Arrow Animation
+
+    private func updateArrow() {
+        let newRotation: Double
+        switch contact.trend {
+        case .approaching: newRotation = 0
+        case .receding: newRotation = 180
+        case .stable: newRotation = arrowRotation + 15
+        }
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+            arrowRotation = newRotation
         }
     }
 
@@ -247,14 +348,12 @@ struct FindMyRadarView: View {
     private func updateHapticRate() {
         #if os(iOS)
         hapticTimer?.invalidate()
-
-        // Haptic interval: closer = faster buzzing
-        // Signal strength 0.0-1.0 maps to interval 2.0s - 0.1s
-        let interval = max(0.1, 2.0 - (signalStrength * 1.9))
-
+        let interval = max(0.15, 2.0 - signalStrength * 1.85)
         hapticTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
-            let generator = UIImpactFeedbackGenerator(style: signalStrength > 0.6 ? .heavy : .medium)
-            generator.impactOccurred(intensity: CGFloat(min(1.0, signalStrength + 0.3)))
+            let style: UIImpactFeedbackGenerator.FeedbackStyle =
+                signalStrength > 0.7 ? .heavy : signalStrength > 0.4 ? .medium : .light
+            let generator = UIImpactFeedbackGenerator(style: style)
+            generator.impactOccurred(intensity: min(1.0, CGFloat(signalStrength) + 0.2))
         }
         #endif
     }

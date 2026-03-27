@@ -114,9 +114,10 @@ struct ContentView: View {
     }
 
     private var statsBar: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             StatPill(icon: "person.2", value: "\(viewModel.contactManager.hashCount)", label: "Contacts")
-            StatPill(icon: "wave.3.right", value: "\(viewModel.scanner.totalDevicesSeen)", label: "Devices")
+            StatPill(icon: "mappin.and.ellipse", value: "\(viewModel.landmarkTracker.landmarkCount)", label: "Landmarks")
+            StatPill(icon: "point.3.connected.trianglepath.dotted", value: "\(viewModel.meshManager?.connectedPeers ?? 0)", label: "Mesh")
 
             let knownCount = viewModel.nearbyContacts.filter { $0.phoneNumber != nil }.count
             StatPill(icon: "person.crop.circle.badge.checkmark", value: "\(knownCount)", label: "Found")
@@ -173,7 +174,11 @@ struct ContentView: View {
                 Section {
                     ForEach(known) { contact in
                         NavigationLink {
-                            FindMyRadarView(contact: contact)
+                            FindMyRadarView(
+                                contact: contact,
+                                sharedLandmarks: viewModel.landmarkTracker.landmarkCount,
+                                hopCount: contact.id.hasPrefix("mesh-") ? 1 : 0
+                            )
                         } label: {
                             NearbyContactRow(contact: contact)
                         }

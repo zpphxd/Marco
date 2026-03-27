@@ -19,6 +19,12 @@
 		AA000010 /* CryptoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010 /* CryptoUtils.swift */; };
 		AA000011 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011 /* Models.swift */; };
 		AA000012 /* FindMyRadarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014 /* FindMyRadarView.swift */; };
+		AA000020 /* MeshMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000020 /* MeshMessage.swift */; };
+		AA000021 /* DeduplicationCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000021 /* DeduplicationCache.swift */; };
+		AA000022 /* MeshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000022 /* MeshManager.swift */; };
+		AA000023 /* KalmanFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000023 /* KalmanFilter.swift */; };
+		AA000024 /* LandmarkTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000024 /* LandmarkTracker.swift */; };
+		AA000025 /* PositionEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* PositionEstimator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +42,12 @@
 		AB000012 /* Marco.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Marco.entitlements; sourceTree = "<group>"; };
 		AB000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB000014 /* FindMyRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindMyRadarView.swift; sourceTree = "<group>"; };
+		AB000020 /* MeshMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshMessage.swift; sourceTree = "<group>"; };
+		AB000021 /* DeduplicationCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeduplicationCache.swift; sourceTree = "<group>"; };
+		AB000022 /* MeshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshManager.swift; sourceTree = "<group>"; };
+		AB000023 /* KalmanFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KalmanFilter.swift; sourceTree = "<group>"; };
+		AB000024 /* LandmarkTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkTracker.swift; sourceTree = "<group>"; };
+		AB000025 /* PositionEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionEstimator.swift; sourceTree = "<group>"; };
 		AC000001 /* Marco.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marco.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -68,6 +80,8 @@
 				AE000006 /* Contacts */,
 				AE000007 /* Utilities */,
 				AE000008 /* Models */,
+				AE000009 /* Mesh */,
+				AE000011 /* Landmarks */,
 				AB000012 /* Marco.entitlements */,
 				AB000013 /* Info.plist */,
 			);
@@ -133,6 +147,26 @@
 				AC000001 /* Marco.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AE000009 /* Mesh */ = {
+			isa = PBXGroup;
+			children = (
+				AB000020 /* MeshMessage.swift */,
+				AB000021 /* DeduplicationCache.swift */,
+				AB000022 /* MeshManager.swift */,
+			);
+			path = Mesh;
+			sourceTree = "<group>";
+		};
+		AE000011 /* Landmarks */ = {
+			isa = PBXGroup;
+			children = (
+				AB000023 /* KalmanFilter.swift */,
+				AB000024 /* LandmarkTracker.swift */,
+				AB000025 /* PositionEstimator.swift */,
+			);
+			path = Landmarks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -215,6 +249,12 @@
 				AA000010 /* CryptoUtils.swift in Sources */,
 				AA000011 /* Models.swift in Sources */,
 				AA000012 /* FindMyRadarView.swift in Sources */,
+				AA000020 /* MeshMessage.swift in Sources */,
+				AA000021 /* DeduplicationCache.swift in Sources */,
+				AA000022 /* MeshManager.swift in Sources */,
+				AA000023 /* KalmanFilter.swift in Sources */,
+				AA000024 /* LandmarkTracker.swift in Sources */,
+				AA000025 /* PositionEstimator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
