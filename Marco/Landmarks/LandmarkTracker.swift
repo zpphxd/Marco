@@ -102,6 +102,19 @@ class LandmarkTracker: NSObject, ObservableObject {
             print("[Landmarks] Cleaned up \(removed) stale landmarks")
         }
         landmarkCount = stableLandmarks.count
+        logLandmarkSummary()
+    }
+
+    private func logLandmarkSummary() {
+        let stable = stableLandmarks
+        guard !stable.isEmpty else { return }
+        print("[Landmarks] === \(stable.count) stable / \(landmarks.count) total ===")
+        for lm in stable.sorted(by: { $0.smoothedRSSI > $1.smoothedRSSI }) {
+            let name = lm.localName ?? "unnamed"
+            let mfg = lm.manufacturerID.map { String(format: "0x%04X", $0) } ?? "???"
+            let age = Int(Date().timeIntervalSince(lm.firstSeen))
+            print("[Landmarks]  \(name) | mfg=\(mfg) | RSSI=\(Int(lm.smoothedRSSI)) | var=\(String(format: "%.1f", lm.rssiVariance)) | \(age)s | id=\(lm.id.prefix(12))")
+        }
     }
 
     /// Generate a stable fingerprint ID for a device

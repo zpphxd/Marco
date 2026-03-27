@@ -195,7 +195,11 @@ struct FindMyRadarView: View {
     @State private var hapticTimer: Timer?
     @State private var dialRotation: Double = 0
     @StateObject private var headingManager = HeadingManager()
-    @State private var targetBearing: Double = 0 // estimated bearing to target
+    @State private var targetBearing: Double = 0
+    // Heading-RSSI sample buffer: records (heading, rssi) as user turns
+    @State private var headingSamples: [(heading: Double, rssi: Int)] = []
+    @State private var bestHeading: Double = 0
+    @State private var bestRSSI: Int = -100
 
     private let compassSize: CGFloat = 280
 
@@ -409,10 +413,13 @@ struct FindMyRadarView: View {
     }
 
     private var directionText: String {
+        if headingSamples.count < 5 {
+            return "Turn slowly to calibrate..."
+        }
         switch contact.trend {
-        case .approaching: return "Getting Closer"
-        case .receding: return "Moving Away"
-        case .stable: return "Hold Still..."
+        case .approaching: return "Getting Closer — Keep Going"
+        case .receding: return "Wrong Way — Follow the Arrow"
+        case .stable: return "Turn Slowly to Find Direction"
         }
     }
 
@@ -614,29 +621,73 @@ struct FindMyRadarView: View {
     // MARK: - Arrow Animation
 
     private func updateArrow() {
-        // Update target bearing estimate based on signal trend
-        switch contact.trend {
-        case .approaching:
-            // Signal getting stronger — we're heading toward them
-            // Lock the bearing to current heading (they're "ahead")
-            targetBearing = headingManager.heading
-        case .receding:
-            // Signal getting weaker — they're behind us
-            // Bearing is opposite of current heading
-            targetBearing = headingManager.heading + 180
-        case .stable:
-            // Keep last known bearing, add slight drift
-            targetBearing += Double.random(in: -5...5)
+        let currentHeading = headingManager.heading
+        let currentRSSI = contact.rssi
+
+        // Record this (heading, rssi) sample
+        headingSamples.append((heading: currentHeading, rssi: currentRSSI))
+
+        // Keep last 30 samples (~15 seconds of data)
+        if headingSamples.count > 30 {
+            headingSamples.removeFirst()
         }
 
-        // Needle points toward target, adjusted for current heading
-        // Since the dial already rotates with heading, the needle shows
-        // the relative direction from our current facing
-        let relativeAngle = targetBearing - headingManager.heading
+        // Track the best heading we've seen
+        if currentRSSI > bestRSSI {
+            bestRSSI = currentRSSI
+            bestHeading = currentHeading
+        }
+
+        // Decay best RSSI slowly so it adapts if target moves
+        if headingSamples.count > 10 {
+            bestRSSI = max(bestRSSI - 1, currentRSSI)
+        }
+
+        // Compute weighted average bearing — headings with stronger RSSI
+        // pull the arrow more toward them
+        if headingSamples.count >= 5 {
+            targetBearing = weightedBearing(from: headingSamples)
+        } else {
+            // Not enough data — use trend-based fallback
+            switch contact.trend {
+            case .approaching:
+                targetBearing = currentHeading
+            case .receding:
+                targetBearing = currentHeading + 180
+            case .stable:
+                break // keep last estimate
+            }
+        }
+
+        // Arrow shows relative angle (dial already compensates for heading)
+        let relativeAngle = targetBearing - currentHeading
 
         withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
             arrowRotation = relativeAngle
         }
+    }
+
+    /// Compute weighted average bearing from heading-RSSI samples.
+    /// Stronger signals get more weight — the bearing where RSSI peaks
+    /// is most likely the direction of the target.
+    private func weightedBearing(from samples: [(heading: Double, rssi: Int)]) -> Double {
+        // Convert to unit vectors, weighted by signal strength
+        let minRSSI = Double(samples.map(\.rssi).min() ?? -100)
+        var sumX: Double = 0
+        var sumY: Double = 0
+
+        for sample in samples {
+            // Weight: exponential so strong signals dominate
+            let weight = pow(2, (Double(sample.rssi) - minRSSI) / 10.0)
+            let rad = sample.heading * .pi / 180
+            sumX += cos(rad) * weight
+            sumY += sin(rad) * weight
+        }
+
+        // Convert back to degrees
+        var bearing = atan2(sumY, sumX) * 180 / .pi
+        if bearing < 0 { bearing += 360 }
+        return bearing
     }
 
     // MARK: - Haptics
