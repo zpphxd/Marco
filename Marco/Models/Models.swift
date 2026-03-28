@@ -70,14 +70,6 @@ struct NearbyContact: Identifiable {
         case approaching = "Getting closer"
         case receding = "Getting farther"
         case stable = "Stable"
-
-        var symbol: String {
-            switch self {
-            case .approaching: return "arrow.down.circle.fill"
-            case .receding: return "arrow.up.circle.fill"
-            case .stable: return "circle.fill"
-            }
-        }
     }
 }
 

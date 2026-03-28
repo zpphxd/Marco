@@ -4,6 +4,11 @@ import MultipeerConnectivity
 protocol MeshManagerDelegate: AnyObject {
     func meshManager(_ manager: MeshManager, didFindContact name: String, hash: String, hopCount: Int, rssiAtFind: Int, landmarks: [LandmarkSighting]?)
     func meshManager(_ manager: MeshManager, didRelaySearch hash: String, hops: Int)
+    func meshManager(_ manager: MeshManager, didReceiveBeacon senderHash: String, landmarks: [LandmarkSighting])
+}
+
+extension MeshManagerDelegate {
+    func meshManager(_ manager: MeshManager, didReceiveBeacon senderHash: String, landmarks: [LandmarkSighting]) {}
 }
 
 @MainActor
@@ -98,6 +103,23 @@ class MeshManager: NSObject, ObservableObject {
         print("[Mesh] Searching for \(hash) with origin \(originID.prefix(8))")
     }
 
+    // MARK: - Beacon (landmark fingerprint exchange)
+
+    func broadcastBeacon() {
+        guard let session = session, !session.connectedPeers.isEmpty else { return }
+        let landmarks = landmarkProvider?() ?? []
+        guard !landmarks.isEmpty else { return }
+
+        let beacon = MeshBeacon(
+            senderHash: myHash,
+            landmarks: landmarks,
+            timestamp: Date().timeIntervalSince1970
+        )
+        guard let data = MeshEnvelope.wrap(beacon) else { return }
+        do { try session.send(data, toPeers: session.connectedPeers, with: .reliable) } catch { print("[Mesh] Send failed: \(error.localizedDescription)") }
+        print("[Mesh] Broadcast beacon with \(landmarks.count) landmarks to \(session.connectedPeers.count) peers")
+    }
+
     // MARK: - Send/Receive
 
     private func broadcast(_ search: MeshSearch) {
@@ -107,14 +129,14 @@ class MeshManager: NSObject, ObservableObject {
         let peers = session.connectedPeers
         guard !peers.isEmpty else { return }
 
-        try? session.send(data, toPeers: peers, with: .reliable)
+        do { try session.send(data, toPeers: peers, with: .reliable) } catch { print("[Mesh] Send failed: \(error.localizedDescription)") }
     }
 
     private func send(_ found: MeshFound, to peer: MCPeerID) {
         guard let data = MeshEnvelope.wrap(found),
               let session = session else { return }
 
-        try? session.send(data, toPeers: [peer], with: .reliable)
+        do { try session.send(data, toPeers: [peer], with: .reliable) } catch { print("[Mesh] Send failed: \(error.localizedDescription)") }
     }
 
     private func broadcastFound(_ found: MeshFound) {
@@ -124,7 +146,7 @@ class MeshManager: NSObject, ObservableObject {
         let peers = session.connectedPeers
         guard !peers.isEmpty else { return }
 
-        try? session.send(data, toPeers: peers, with: .reliable)
+        do { try session.send(data, toPeers: peers, with: .reliable) } catch { print("[Mesh] Send failed: \(error.localizedDescription)") }
     }
 
     // MARK: - Handle Incoming
@@ -143,7 +165,9 @@ class MeshManager: NSObject, ObservableObject {
                     await handleFound(found, from: peer)
                 }
             case .beacon:
-                break // future use
+                if let beacon = envelope.unwrapBeacon() {
+                    await handleBeacon(beacon, from: peer)
+                }
             }
         }
     }
@@ -187,7 +211,7 @@ class MeshManager: NSObject, ObservableObject {
         guard !forwardPeers.isEmpty else { return }
 
         if let data = MeshEnvelope.wrap(forwarded) {
-            try? session.send(data, toPeers: forwardPeers, with: .reliable)
+            do { try session.send(data, toPeers: forwardPeers, with: .reliable) } catch { print("[Mesh] Send failed: \(error.localizedDescription)") }
             searchesRelayed += 1
             print("[Mesh] Relayed search for \(search.queryHash.prefix(8)) (TTL=\(forwarded.ttl), hops=\(forwarded.hopCount))")
         }
@@ -220,6 +244,12 @@ class MeshManager: NSObject, ObservableObject {
             broadcastFound(flooded)
             print("[Mesh] No route for FOUND, flooding (hops=\(flooded.hopCount))")
         }
+    }
+
+    private func handleBeacon(_ beacon: MeshBeacon, from peer: MCPeerID) async {
+        guard !beacon.landmarks.isEmpty else { return }
+        print("[Mesh] Received beacon from \(beacon.senderHash.prefix(8)) with \(beacon.landmarks.count) landmarks")
+        delegate?.meshManager(self, didReceiveBeacon: beacon.senderHash, landmarks: beacon.landmarks)
     }
 
     private func checkRateLimit() -> Bool {

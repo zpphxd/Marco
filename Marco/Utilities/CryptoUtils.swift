@@ -43,20 +43,4 @@ enum CryptoUtils {
         return shortHash(normalized)
     }
 
-    // MARK: - Apple-style hashes (for AirDrop passive matching)
-
-    /// Apple AirDrop uses unsalted SHA256, truncated to 3 bytes.
-    /// Phone numbers are hashed as raw digit strings.
-    static func applePhoneHash(_ number: String) -> String {
-        let normalized = normalizePhoneNumber(number)
-        let digest = SHA256.hash(data: Data(normalized.utf8))
-        return digest.prefix(3).map { String(format: "%02x", $0) }.joined()
-    }
-
-    /// Apple AirDrop email hash — lowercase, unsalted SHA256, first 3 bytes.
-    static func appleEmailHash(_ email: String) -> String {
-        let normalized = normalizeEmail(email)
-        let digest = SHA256.hash(data: Data(normalized.utf8))
-        return digest.prefix(3).map { String(format: "%02x", $0) }.joined()
-    }
 }

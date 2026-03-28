@@ -25,6 +25,9 @@ class RadarViewModel: ObservableObject {
     var meshManager: MeshManager?
 
     private var staleTimer: Timer?
+    private var beaconTimer: Timer?
+    // Landmark fingerprints received from nearby devices, keyed by hash
+    private var receivedFingerprints: [String: [LandmarkSighting]] = [:]
 
     init() {
         scanner.delegate = self
@@ -61,6 +64,13 @@ class RadarViewModel: ObservableObject {
                 self?.removeStaleContacts()
             }
         }
+
+        // Broadcast landmark fingerprint every 5 seconds to nearby peers
+        beaconTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.meshManager?.broadcastBeacon()
+            }
+        }
     }
 
     func stopRadar() {
@@ -69,7 +79,10 @@ class RadarViewModel: ObservableObject {
         meshManager?.stop()
         landmarkTracker.stop()
         staleTimer?.invalidate()
+        beaconTimer?.invalidate()
         staleTimer = nil
+        beaconTimer = nil
+        receivedFingerprints.removeAll()
         status = .off
         nearbyContacts.removeAll()
     }
@@ -101,6 +114,14 @@ class RadarViewModel: ObservableObject {
         if discoveryLogCounter % 10 == 0 {
             let isKnown = contactManager.lookup(hash) != nil
             print("[Radar] Signal: hash=\(hash.prefix(8)) RSSI=\(rssi) dist=\(distance.rawValue) known=\(isKnown) contacts=\(nearbyContacts.count)")
+        }
+
+        // Try landmark-based position estimation if we have their fingerprint
+        if let theirLandmarks = receivedFingerprints[hash], !theirLandmarks.isEmpty {
+            let myLandmarks = landmarkTracker.currentFingerprint()
+            if let position = PositionEstimator.estimate(myFingerprint: myLandmarks, theirFingerprint: theirLandmarks) {
+                print("[Radar] Landmark position for \(hash.prefix(8)): \(String(format: "%.1f", position.estimatedDistance))m confidence=\(String(format: "%.0f", position.confidence * 100))% shared=\(position.sharedLandmarkCount)")
+            }
         }
 
         if let index = nearbyContacts.firstIndex(where: { $0.id == hash }) {
@@ -206,7 +227,12 @@ extension RadarViewModel: MeshManagerDelegate {
         }
     }
 
-    nonisolated func meshManager(_ manager: MeshManager, didRelaySearch hash: String, hops: Int) {
-        // Stats tracking — could update UI
+    nonisolated func meshManager(_ manager: MeshManager, didRelaySearch hash: String, hops: Int) {}
+
+    nonisolated func meshManager(_ manager: MeshManager, didReceiveBeacon senderHash: String, landmarks: [LandmarkSighting]) {
+        Task { @MainActor in
+            receivedFingerprints[senderHash] = landmarks
+            print("[Radar] Stored fingerprint from \(senderHash.prefix(8)): \(landmarks.count) landmarks")
+        }
     }
 }

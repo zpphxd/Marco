@@ -2,8 +2,7 @@ import Foundation
 
 struct RelativePosition {
     let estimatedDistance: Double
-    let bearing: Double?
-    let confidence: Double
+    let confidence: Double // 0.0 to 1.0
     let sharedLandmarkCount: Int
     let method: String
 }
@@ -59,7 +58,7 @@ enum PositionEstimator {
             result = estimateFromMultiple(pairs)
         }
 
-        print("[Position] Result: \(String(format: "%.1f", result.estimatedDistance))m confidence=\(String(format: "%.0f", result.confidence * 100))% method=\(result.method) bearing=\(result.bearing.map { String(format: "%.0f°", $0) } ?? "none")")
+        print("[Position] Result: \(String(format: "%.1f", result.estimatedDistance))m confidence=\(String(format: "%.0f", result.confidence * 100))% method=\(result.method)")
         return result
     }
 
@@ -75,8 +74,7 @@ enum PositionEstimator {
 
         return RelativePosition(
             estimatedDistance: max(0.5, estimated),
-            bearing: nil,
-            confidence: 0.2, // low confidence with 1 landmark
+            confidence: 0.2,
             sharedLandmarkCount: 1,
             method: "rssi-ratio"
         )
@@ -101,7 +99,6 @@ enum PositionEstimator {
 
         return RelativePosition(
             estimatedDistance: max(0.5, estimated),
-            bearing: nil,
             confidence: 0.4,
             sharedLandmarkCount: 2,
             method: "dual-rssi"
@@ -138,31 +135,8 @@ enum PositionEstimator {
         let signalBonus = totalWeight / Double(pairs.count) * 0.3
         let confidence = min(0.95, baseConfidence + signalBonus)
 
-        // Attempt bearing estimation from RSSI gradient
-        // If landmarks on one side show stronger signal for them,
-        // they're likely in that direction
-        var bearing: Double?
-        if pairs.count >= 3 {
-            // Simple: find the landmark where they have strongest relative signal
-            // This gives a rough direction
-            var bestIdx = 0
-            var bestDiff = -999.0
-            for (i, pair) in pairs.enumerated() {
-                let diff = pair.theirRSSI - pair.myRSSI // positive = they're closer to this landmark
-                if diff > bestDiff {
-                    bestDiff = diff
-                    bestIdx = i
-                }
-            }
-
-            // Use landmark index as a rough angle (evenly distributed assumption)
-            // This is very approximate but gives SOME directional info
-            bearing = Double(bestIdx) / Double(pairs.count) * 360.0
-        }
-
         return RelativePosition(
             estimatedDistance: max(0.5, estimated),
-            bearing: bearing,
             confidence: confidence,
             sharedLandmarkCount: pairs.count,
             method: "trilateration"

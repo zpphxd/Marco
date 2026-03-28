@@ -10,11 +10,9 @@
 		AA000001 /* MarcoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001 /* MarcoApp.swift */; };
 		AA000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000002 /* ContentView.swift */; };
 		AA000003 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000003 /* SetupView.swift */; };
-		AA000004 /* NearbyContactRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000004 /* NearbyContactRow.swift */; };
 		AA000005 /* RadarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000005 /* RadarViewModel.swift */; };
 		AA000006 /* BLEScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006 /* BLEScanner.swift */; };
 		AA000007 /* BLEAdvertiser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000007 /* BLEAdvertiser.swift */; };
-		AA000008 /* AirDropParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000008 /* AirDropParser.swift */; };
 		AA000009 /* ContactHashManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000009 /* ContactHashManager.swift */; };
 		AA000010 /* CryptoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010 /* CryptoUtils.swift */; };
 		AA000011 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011 /* Models.swift */; };
@@ -26,18 +24,15 @@
 		AA000024 /* LandmarkTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000024 /* LandmarkTracker.swift */; };
 		AA000025 /* PositionEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* PositionEstimator.swift */; };
 		AA000026 /* DemoRadarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000026 /* DemoRadarView.swift */; };
-		AA000027 /* HeadingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000027 /* HeadingManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		AB000001 /* MarcoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarcoApp.swift; sourceTree = "<group>"; };
 		AB000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AB000003 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
-		AB000004 /* NearbyContactRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyContactRow.swift; sourceTree = "<group>"; };
 		AB000005 /* RadarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarViewModel.swift; sourceTree = "<group>"; };
 		AB000006 /* BLEScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEScanner.swift; sourceTree = "<group>"; };
 		AB000007 /* BLEAdvertiser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEAdvertiser.swift; sourceTree = "<group>"; };
-		AB000008 /* AirDropParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AirDropParser.swift; sourceTree = "<group>"; };
 		AB000009 /* ContactHashManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactHashManager.swift; sourceTree = "<group>"; };
 		AB000010 /* CryptoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtils.swift; sourceTree = "<group>"; };
 		AB000011 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -51,7 +46,6 @@
 		AB000024 /* LandmarkTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkTracker.swift; sourceTree = "<group>"; };
 		AB000025 /* PositionEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionEstimator.swift; sourceTree = "<group>"; };
 		AB000026 /* DemoRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoRadarView.swift; sourceTree = "<group>"; };
-		AB000027 /* HeadingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadingManager.swift; sourceTree = "<group>"; };
 		AC000001 /* Marco.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marco.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -97,7 +91,6 @@
 			children = (
 				AB000002 /* ContentView.swift */,
 				AB000003 /* SetupView.swift */,
-				AB000004 /* NearbyContactRow.swift */,
 				AB000014 /* FindMyRadarView.swift */,
 				AB000026 /* DemoRadarView.swift */,
 			);
@@ -117,7 +110,6 @@
 			children = (
 				AB000006 /* BLEScanner.swift */,
 				AB000007 /* BLEAdvertiser.swift */,
-				AB000008 /* AirDropParser.swift */,
 			);
 			path = Bluetooth;
 			sourceTree = "<group>";
@@ -134,7 +126,6 @@
 			isa = PBXGroup;
 			children = (
 				AB000010 /* CryptoUtils.swift */,
-				AB000027 /* HeadingManager.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -246,11 +237,9 @@
 				AA000001 /* MarcoApp.swift in Sources */,
 				AA000002 /* ContentView.swift in Sources */,
 				AA000003 /* SetupView.swift in Sources */,
-				AA000004 /* NearbyContactRow.swift in Sources */,
 				AA000005 /* RadarViewModel.swift in Sources */,
 				AA000006 /* BLEScanner.swift in Sources */,
 				AA000007 /* BLEAdvertiser.swift in Sources */,
-				AA000008 /* AirDropParser.swift in Sources */,
 				AA000009 /* ContactHashManager.swift in Sources */,
 				AA000010 /* CryptoUtils.swift in Sources */,
 				AA000011 /* Models.swift in Sources */,
@@ -262,7 +251,6 @@
 				AA000024 /* LandmarkTracker.swift in Sources */,
 				AA000025 /* PositionEstimator.swift in Sources */,
 				AA000026 /* DemoRadarView.swift in Sources */,
-				AA000027 /* HeadingManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
