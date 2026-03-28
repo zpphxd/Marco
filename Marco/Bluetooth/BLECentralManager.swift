@@ -35,8 +35,9 @@ class BLECentralManager: NSObject, ObservableObject {
     // Connected Marco peers: peripheral UUID → (peripheral, hash)
     private var connectedPeers: [UUID: (peripheral: CBPeripheral, hash: String?)] = [:]
 
-    // Peers we're currently connecting to (prevent double-connect)
-    private var connectingPeers: Set<UUID> = []
+    // Peers we're currently connecting to — MUST retain CBPeripheral reference
+    // or iOS cancels the connection immediately
+    private var connectingPeers: [UUID: CBPeripheral] = [:]
 
     // Keepalive timers: peripheral UUID → timer for writing to signal characteristic
     private var keepaliveTimers: [UUID: Timer] = [:]
@@ -121,9 +122,9 @@ class BLECentralManager: NSObject, ObservableObject {
 
     private func connectToPeer(_ peripheral: CBPeripheral) {
         let uuid = peripheral.identifier
-        guard !connectingPeers.contains(uuid) && connectedPeers[uuid] == nil else { return }
+        guard connectingPeers[uuid] == nil && connectedPeers[uuid] == nil else { return }
 
-        connectingPeers.insert(uuid)
+        connectingPeers[uuid] = peripheral  // MUST retain reference
         peripheral.delegate = self
         centralManager?.connect(peripheral, options: nil)
         print("[Central] Connecting to Marco peer: \(uuid.uuidString.prefix(8))")
@@ -178,7 +179,7 @@ class BLECentralManager: NSObject, ObservableObject {
     private func cleanupPeer(_ peripheral: CBPeripheral) {
         let uuid = peripheral.identifier
         connectedPeers.removeValue(forKey: uuid)
-        connectingPeers.remove(uuid)
+        connectingPeers.removeValue(forKey: uuid)
         keepaliveTimers[uuid]?.invalidate()
         keepaliveTimers.removeValue(forKey: uuid)
         landmarkReadTimers[uuid]?.invalidate()
@@ -266,7 +267,7 @@ extension BLECentralManager: CBCentralManagerDelegate {
         print("[Central] Connected to \(peripheral.identifier.uuidString.prefix(8))")
 
         Task { @MainActor in
-            connectingPeers.remove(peripheral.identifier)
+            connectingPeers.removeValue(forKey: peripheral.identifier)
             connectedPeers[peripheral.identifier] = (peripheral, nil)
             connectedPeerCount = connectedPeers.count
 
@@ -286,7 +287,7 @@ extension BLECentralManager: CBCentralManagerDelegate {
 
             // Auto-reconnect — iOS will keep trying indefinitely even in background
             central.connect(peripheral, options: nil)
-            connectingPeers.insert(peripheral.identifier)
+            connectingPeers[peripheral.identifier] = peripheral  // retain reference
             print("[Central] Auto-reconnecting to \(peripheral.identifier.uuidString.prefix(8))")
         }
     }
@@ -295,7 +296,7 @@ extension BLECentralManager: CBCentralManagerDelegate {
         print("[Central] Failed to connect: \(peripheral.identifier.uuidString.prefix(8)): \(error?.localizedDescription ?? "unknown")")
 
         Task { @MainActor in
-            connectingPeers.remove(peripheral.identifier)
+            connectingPeers.removeValue(forKey: peripheral.identifier)
         }
     }
 }
