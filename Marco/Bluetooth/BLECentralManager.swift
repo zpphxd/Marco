@@ -7,6 +7,7 @@ protocol MarcoPeerDelegate: AnyObject {
     func didReceiveLandmarks(_ landmarks: [LandmarkSighting], from hash: String)
     func didReceiveMeshMessage(_ data: Data, from peripheral: CBPeripheral)
     func didReceiveKeepalive(from peripheral: CBPeripheral)
+    func didReceiveUWBToken(_ data: Data, from peripheral: CBPeripheral)
     func didConnectPeer(_ peripheral: CBPeripheral)
     func didDisconnectPeer(_ peripheral: CBPeripheral)
 }
@@ -425,8 +426,10 @@ extension BLECentralManager: CBPeripheralDelegate {
                 peerDelegate?.didReceiveMeshMessage(data, from: peripheral)
 
             case MarcoGATT.uwbTokenCharUUID:
-                print("[Central] UWB token from \(peripheral.identifier.uuidString.prefix(8)): \(data.count) bytes")
-                // TODO: Phase 3 — pass to UWBManager
+                if !data.isEmpty {
+                    print("[Central] UWB token from \(peripheral.identifier.uuidString.prefix(8)): \(data.count) bytes")
+                    peerDelegate?.didReceiveUWBToken(data, from: peripheral)
+                }
 
             default:
                 break

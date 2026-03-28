@@ -14,10 +14,10 @@ struct ContentView: View {
                     Color.black.opacity(0.03).ignoresSafeArea()
                 }
 
-                if !viewModel.isRadarActive && viewModel.myHash.isEmpty {
-                    SetupView(viewModel: viewModel)
-                } else {
+                if viewModel.isRadarActive {
                     radarView
+                } else {
+                    SetupView(viewModel: viewModel)
                 }
             }
             .navigationTitle("Marco")

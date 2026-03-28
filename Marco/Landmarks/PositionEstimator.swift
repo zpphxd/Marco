@@ -1,145 +1,247 @@
 import Foundation
+import simd
 
 struct RelativePosition {
     let estimatedDistance: Double
-    let confidence: Double // 0.0 to 1.0
+    let confidence: Double
     let sharedLandmarkCount: Int
     let method: String
+    let uwbDistance: Float?      // centimeter-accurate if available
+    let uwbDirection: simd_float3?  // unit vector toward peer if available
 }
 
 enum PositionEstimator {
 
-    static let txPower: Double = -59  // typical BLE RSSI at 1 meter
-    static let pathLossExponent: Double = 2.5  // indoor environment
+    static let txPower: Double = -59
+    static let pathLossExponent: Double = 2.5
 
-    /// Convert RSSI to distance in meters
     static func rssiToDistance(_ rssi: Double) -> Double {
         guard rssi < 0 else { return 0.1 }
         return pow(10, (txPower - rssi) / (10 * pathLossExponent))
     }
 
-    /// Estimate relative position from two landmark fingerprints
+    // MARK: - Combined Estimate (UWB + Landmarks + RSSI)
+
+    /// Produce the best possible position estimate by combining all available data
+    static func combinedEstimate(
+        myFingerprint: [LandmarkSighting],
+        theirFingerprint: [LandmarkSighting],
+        directRSSI: Int,
+        uwbDistance: Float? = nil,
+        uwbDirection: simd_float3? = nil
+    ) -> RelativePosition {
+
+        // Priority 1: UWB (centimeter accuracy)
+        if let uwbDist = uwbDistance {
+            return RelativePosition(
+                estimatedDistance: Double(uwbDist),
+                confidence: 0.99,
+                sharedLandmarkCount: 0,
+                method: "uwb",
+                uwbDistance: uwbDist,
+                uwbDirection: uwbDirection
+            )
+        }
+
+        // Priority 2: Landmark trilateration
+        if let landmarkResult = estimate(myFingerprint: myFingerprint, theirFingerprint: theirFingerprint) {
+            // Blend with direct RSSI for stability
+            let rssiDist = rssiToDistance(Double(directRSSI))
+
+            // Weight landmark estimate more heavily (0.7) vs RSSI (0.3)
+            // but only when confidence is high
+            let landmarkWeight = landmarkResult.confidence * 0.7
+            let rssiWeight = 1.0 - landmarkWeight
+            let blended = landmarkResult.estimatedDistance * landmarkWeight + rssiDist * rssiWeight
+
+            return RelativePosition(
+                estimatedDistance: blended,
+                confidence: landmarkResult.confidence,
+                sharedLandmarkCount: landmarkResult.sharedLandmarkCount,
+                method: "landmark+rssi",
+                uwbDistance: nil,
+                uwbDirection: nil
+            )
+        }
+
+        // Priority 3: Raw RSSI only
+        let rssiDist = rssiToDistance(Double(directRSSI))
+        return RelativePosition(
+            estimatedDistance: rssiDist,
+            confidence: 0.15,
+            sharedLandmarkCount: 0,
+            method: "rssi-only",
+            uwbDistance: nil,
+            uwbDirection: nil
+        )
+    }
+
+    // MARK: - Landmark-Only Estimate
+
     static func estimate(
         myFingerprint: [LandmarkSighting],
         theirFingerprint: [LandmarkSighting]
     ) -> RelativePosition? {
-        print("[Position] Comparing fingerprints: mine=\(myFingerprint.count) theirs=\(theirFingerprint.count)")
-
         let theirMap = Dictionary(uniqueKeysWithValues: theirFingerprint.map { ($0.landmarkID, $0.rssi) })
 
-        var shared: [(landmarkID: String, myRSSI: Double, theirRSSI: Double)] = []
+        var shared: [(myRSSI: Double, theirRSSI: Double, weight: Double)] = []
         for mine in myFingerprint {
             if let theirs = theirMap[mine.landmarkID] {
-                shared.append((landmarkID: mine.landmarkID, myRSSI: Double(mine.rssi), theirRSSI: Double(theirs)))
+                let myRSSI = Double(mine.rssi)
+                let theirRSSI = Double(theirs)
+
+                // Weight by RSSI reliability:
+                // - Stronger signals (closer landmarks) are more reliable
+                // - Both phones seeing similar RSSI = landmark is equidistant = less useful
+                // - Large RSSI difference = more positional information
+                let avgRSSI = (myRSSI + theirRSSI) / 2.0
+                let signalWeight = max(0.1, (avgRSSI + 100) / 60.0) // stronger = higher
+                let diffWeight = max(0.2, abs(myRSSI - theirRSSI) / 20.0) // bigger diff = more info
+                let weight = signalWeight * diffWeight
+
+                shared.append((myRSSI: myRSSI, theirRSSI: theirRSSI, weight: weight))
             }
         }
 
-        if shared.isEmpty {
-            print("[Position] No shared landmarks found")
-            return nil
-        }
+        guard !shared.isEmpty else { return nil }
 
-        print("[Position] \(shared.count) shared landmarks:")
-        for s in shared {
-            let myDist = rssiToDistance(s.myRSSI)
-            let theirDist = rssiToDistance(s.theirRSSI)
-            print("[Position]   [\(s.landmarkID.prefix(8))] myRSSI=\(Int(s.myRSSI))→\(String(format: "%.1f", myDist))m theirRSSI=\(Int(s.theirRSSI))→\(String(format: "%.1f", theirDist))m Δ=\(String(format: "%.1f", abs(theirDist - myDist)))m")
-        }
+        // Log only periodically (caller handles throttling)
 
-        let pairs = shared.map { (myRSSI: $0.myRSSI, theirRSSI: $0.theirRSSI) }
-
-        let result: RelativePosition
-        switch pairs.count {
+        switch shared.count {
         case 1:
-            result = estimateFromSingle(pairs[0])
+            return estimateFromSingle(shared[0])
         case 2:
-            result = estimateFromPair(pairs[0], pairs[1])
+            return estimateFromPair(shared[0], shared[1])
         default:
-            result = estimateFromMultiple(pairs)
+            return estimateFromMultiple(shared)
         }
-
-        print("[Position] Result: \(String(format: "%.1f", result.estimatedDistance))m confidence=\(String(format: "%.0f", result.confidence * 100))% method=\(result.method)")
-        return result
     }
 
-    // MARK: - 1 shared landmark: basic distance ratio
+    // MARK: - 1 shared landmark
 
-    private static func estimateFromSingle(_ pair: (myRSSI: Double, theirRSSI: Double)) -> RelativePosition {
-        let myDist = rssiToDistance(pair.myRSSI)
-        let theirDist = rssiToDistance(pair.theirRSSI)
-
-        // Triangle inequality: they're between |myDist - theirDist| and myDist + theirDist from us
-        // Best estimate: use the difference
+    private static func estimateFromSingle(_ s: (myRSSI: Double, theirRSSI: Double, weight: Double)) -> RelativePosition {
+        let myDist = rssiToDistance(s.myRSSI)
+        let theirDist = rssiToDistance(s.theirRSSI)
         let estimated = abs(theirDist - myDist)
 
         return RelativePosition(
             estimatedDistance: max(0.5, estimated),
             confidence: 0.2,
             sharedLandmarkCount: 1,
-            method: "rssi-ratio"
+            method: "rssi-ratio",
+            uwbDistance: nil,
+            uwbDirection: nil
         )
     }
 
-    // MARK: - 2 shared landmarks: distance range
+    // MARK: - 2 shared landmarks
 
     private static func estimateFromPair(
-        _ a: (myRSSI: Double, theirRSSI: Double),
-        _ b: (myRSSI: Double, theirRSSI: Double)
+        _ a: (myRSSI: Double, theirRSSI: Double, weight: Double),
+        _ b: (myRSSI: Double, theirRSSI: Double, weight: Double)
     ) -> RelativePosition {
-        let myDistA = rssiToDistance(a.myRSSI)
-        let theirDistA = rssiToDistance(a.theirRSSI)
-        let myDistB = rssiToDistance(b.myRSSI)
-        let theirDistB = rssiToDistance(b.theirRSSI)
+        let estA = abs(rssiToDistance(a.theirRSSI) - rssiToDistance(a.myRSSI))
+        let estB = abs(rssiToDistance(b.theirRSSI) - rssiToDistance(b.myRSSI))
 
-        let estA = abs(theirDistA - myDistA)
-        let estB = abs(theirDistB - myDistB)
-
-        // Average the two estimates
-        let estimated = (estA + estB) / 2.0
+        let totalWeight = a.weight + b.weight
+        let estimated = (estA * a.weight + estB * b.weight) / totalWeight
 
         return RelativePosition(
             estimatedDistance: max(0.5, estimated),
             confidence: 0.4,
             sharedLandmarkCount: 2,
-            method: "dual-rssi"
+            method: "dual-rssi",
+            uwbDistance: nil,
+            uwbDirection: nil
         )
     }
 
-    // MARK: - 3+ shared landmarks: weighted trilateration
+    // MARK: - 3+ shared landmarks: iterative least-squares
 
     private static func estimateFromMultiple(
-        _ pairs: [(myRSSI: Double, theirRSSI: Double)]
+        _ samples: [(myRSSI: Double, theirRSSI: Double, weight: Double)]
     ) -> RelativePosition {
-        // For each landmark, compute distance difference
-        var distanceEstimates: [(estimate: Double, weight: Double)] = []
+        // Place landmarks on a unit circle relative to us (position 0,0)
+        // Each landmark has: our distance to it (myDist) and their distance to it (theirDist)
+        // We solve for their position (x, y) using weighted least squares
 
-        for pair in pairs {
-            let myDist = rssiToDistance(pair.myRSSI)
-            let theirDist = rssiToDistance(pair.theirRSSI)
-            let diff = abs(theirDist - myDist)
+        let count = samples.count
 
-            // Weight by signal strength (stronger signals = more reliable)
-            let avgRSSI = (pair.myRSSI + pair.theirRSSI) / 2.0
-            let weight = max(0.1, 1.0 - (abs(avgRSSI) - 40) / 60.0) // closer = higher weight
+        // Arrange landmarks at evenly-spaced angles on a circle
+        // (we don't know true positions, so this is an approximation)
+        var landmarkPositions: [(x: Double, y: Double, myDist: Double, theirDist: Double, weight: Double)] = []
 
-            distanceEstimates.append((estimate: diff, weight: weight))
+        for (i, s) in samples.enumerated() {
+            let angle = 2.0 * .pi * Double(i) / Double(count)
+            let myDist = rssiToDistance(s.myRSSI)
+            let theirDist = rssiToDistance(s.theirRSSI)
+
+            // Place landmark at distance myDist from origin (us) at this angle
+            let lx = myDist * cos(angle)
+            let ly = myDist * sin(angle)
+
+            landmarkPositions.append((x: lx, y: ly, myDist: myDist, theirDist: theirDist, weight: s.weight))
         }
 
-        // Weighted average
-        let totalWeight = distanceEstimates.reduce(0) { $0 + $1.weight }
-        let weightedSum = distanceEstimates.reduce(0) { $0 + $1.estimate * $1.weight }
-        let estimated = weightedSum / totalWeight
+        // Iterative weighted least squares to find (tx, ty) — their position
+        var tx = 0.0
+        var ty = 0.0
 
-        // Confidence increases with more landmarks and stronger signals
-        let baseConfidence = min(1.0, Double(pairs.count) * 0.15)
-        let signalBonus = totalWeight / Double(pairs.count) * 0.3
-        let confidence = min(0.95, baseConfidence + signalBonus)
+        for _ in 0..<10 { // 10 iterations
+            var gradX = 0.0
+            var gradY = 0.0
+            var totalW = 0.0
+
+            for lm in landmarkPositions {
+                let dx = tx - lm.x
+                let dy = ty - lm.y
+                let currentDist = sqrt(dx * dx + dy * dy)
+                let targetDist = lm.theirDist
+
+                guard currentDist > 0.01 else { continue }
+
+                let error = currentDist - targetDist
+                let w = lm.weight
+
+                // Gradient descent step
+                gradX += w * error * dx / currentDist
+                gradY += w * error * dy / currentDist
+                totalW += w
+            }
+
+            guard totalW > 0 else { break }
+
+            let learningRate = 0.3
+            tx -= learningRate * gradX / totalW
+            ty -= learningRate * gradY / totalW
+        }
+
+        let estimatedDistance = sqrt(tx * tx + ty * ty)
+
+        // Confidence: more landmarks + better signal weights = higher
+        let totalWeight = samples.reduce(0.0) { $0 + $1.weight }
+        let avgWeight = totalWeight / Double(count)
+        let baseConfidence = min(1.0, Double(count) * 0.12)
+        let weightBonus = min(0.3, avgWeight * 0.15)
+        let confidence = min(0.95, baseConfidence + weightBonus)
+
+        // Compute residual error for quality assessment
+        var totalResidual = 0.0
+        for lm in landmarkPositions {
+            let dx = tx - lm.x
+            let dy = lm.y - ty
+            let dist = sqrt(dx * dx + dy * dy)
+            totalResidual += abs(dist - lm.theirDist) * lm.weight
+        }
+        let avgResidual = totalResidual / totalWeight
 
         return RelativePosition(
-            estimatedDistance: max(0.5, estimated),
+            estimatedDistance: max(0.5, estimatedDistance),
             confidence: confidence,
-            sharedLandmarkCount: pairs.count,
-            method: "trilateration"
+            sharedLandmarkCount: count,
+            method: avgResidual < 3.0 ? "least-squares" : "least-squares(noisy)",
+            uwbDistance: nil,
+            uwbDirection: nil
         )
     }
 }

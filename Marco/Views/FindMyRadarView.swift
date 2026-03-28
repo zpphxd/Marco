@@ -274,19 +274,56 @@ struct FindMyRadarView: View {
             SignalRing(signalStrength: signalStrength, color: proximityColor)
                 .frame(width: radarSize * 0.7, height: radarSize * 0.7)
 
-            // Center — signal percentage
-            VStack(spacing: 4) {
-                Text("\(Int(signalStrength * 100))%")
-                    .font(.system(size: 42, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
+            // UWB direction arrow (only shown when UWB provides direction)
+            if viewModel.uwbManager.hasDirection, let dir = viewModel.uwbManager.peerDirection {
+                // Convert 3D direction vector to 2D angle
+                // dir.x = right, dir.z = forward in device frame
+                let angle = atan2(Double(dir.x), Double(dir.z)) * 180.0 / .pi
 
-                Text("SIGNAL")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.4))
-                    .tracking(2)
+                // Direction arrow
+                Image(systemName: "location.north.fill")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(proximityColor)
+                    .rotationEffect(.degrees(angle))
+                    .shadow(color: proximityColor.opacity(0.6), radius: 10)
+                    .offset(y: -radarSize * 0.22)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: angle)
+
+                // UWB badge
+                Text("UWB")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(proximityColor)
+                    .clipShape(Capsule())
+                    .offset(y: -radarSize * 0.35)
             }
 
-            // Distance on compass face
+            // Center — signal percentage or UWB distance
+            VStack(spacing: 4) {
+                if let uwbDist = viewModel.uwbManager.peerDistance {
+                    Text(String(format: "%.2fm", uwbDist))
+                        .font(.system(size: 36, weight: .bold, design: .monospaced))
+                        .foregroundColor(proximityColor)
+
+                    Text("UWB PRECISION")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(proximityColor.opacity(0.6))
+                        .tracking(1)
+                } else {
+                    Text("\(Int(signalStrength * 100))%")
+                        .font(.system(size: 42, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+
+                    Text("SIGNAL")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.4))
+                        .tracking(2)
+                }
+            }
+
+            // Distance on face
             Text(distanceText)
                 .font(.system(size: 15, weight: .bold, design: .monospaced))
                 .foregroundColor(.white.opacity(0.7))

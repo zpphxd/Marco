@@ -24,6 +24,7 @@ class RadarViewModel: ObservableObject {
     let centralManager = BLECentralManager()
     let peripheralManager = BLEPeripheralManager()
     let landmarkTracker = LandmarkTracker()
+    let uwbManager = UWBManager()
 
     // Landmark fingerprints received from peers, keyed by hash
     private var receivedFingerprints: [String: [LandmarkSighting]] = [:]
@@ -68,6 +69,12 @@ class RadarViewModel: ObservableObject {
         centralManager.start()
         landmarkTracker.start()
 
+        // Publish UWB token if supported
+        if uwbManager.isSupported, let tokenData = uwbManager.getTokenData() {
+            peripheralManager.updateUWBToken(tokenData)
+            print("[Radar] UWB supported — token published (\(tokenData.count) bytes)")
+        }
+
         status = .scanning
 
         staleTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
@@ -111,32 +118,31 @@ class RadarViewModel: ObservableObject {
     private func processDiscovery(hash: String, rssi: Int) {
         guard hash != myHash else { return }
 
-        let distance = DistanceEstimate.from(rssi: rssi)
         discoveryLogCounter += 1
 
-        // Try landmark-based position estimation
-        var landmarkDistance: Double?
-        if let theirLandmarks = receivedFingerprints[hash], !theirLandmarks.isEmpty {
-            let myLandmarks = landmarkTracker.currentFingerprint()
-            if let position = PositionEstimator.estimate(myFingerprint: myLandmarks, theirFingerprint: theirLandmarks) {
-                landmarkDistance = position.estimatedDistance
-                if discoveryLogCounter % 10 == 0 {
-                    print("[Radar] Landmark position for \(hash.prefix(8)): \(String(format: "%.1f", position.estimatedDistance))m confidence=\(String(format: "%.0f", position.confidence * 100))% shared=\(position.sharedLandmarkCount)")
-                }
-            }
+        // Combined estimate using all available data
+        let myLandmarks = landmarkTracker.currentFingerprint()
+        let theirLandmarks = receivedFingerprints[hash] ?? []
+
+        let position = PositionEstimator.combinedEstimate(
+            myFingerprint: myLandmarks,
+            theirFingerprint: theirLandmarks,
+            directRSSI: rssi,
+            uwbDistance: uwbManager.peerDistance,
+            uwbDirection: uwbManager.peerDirection
+        )
+
+        if discoveryLogCounter % 10 == 0 {
+            print("[Radar] Position: \(String(format: "%.1f", position.estimatedDistance))m method=\(position.method) confidence=\(String(format: "%.0f", position.confidence * 100))% shared=\(position.sharedLandmarkCount) uwb=\(position.uwbDistance.map { String(format: "%.2fm", $0) } ?? "none")")
         }
 
-        // Use landmark distance if available and confident, otherwise RSSI
         let effectiveDistance: DistanceEstimate
-        if let ld = landmarkDistance, ld > 0 {
-            switch ld {
-            case ..<2: effectiveDistance = .veryClose
-            case ..<5: effectiveDistance = .nearby
-            case ..<15: effectiveDistance = .inRange
-            default: effectiveDistance = .far
-            }
-        } else {
-            effectiveDistance = distance
+        let ed = position.estimatedDistance
+        switch ed {
+        case ..<2: effectiveDistance = .veryClose
+        case ..<5: effectiveDistance = .nearby
+        case ..<15: effectiveDistance = .inRange
+        default: effectiveDistance = .far
         }
 
         if let index = nearbyContacts.firstIndex(where: { $0.id == hash }) {
@@ -280,6 +286,15 @@ extension RadarViewModel: MarcoPeerDelegate {
         }
     }
 
+    nonisolated func didReceiveUWBToken(_ data: Data, from peripheral: CBPeripheral) {
+        Task { @MainActor in
+            if uwbManager.isSupported && !uwbManager.isRunning {
+                uwbManager.startSession(withPeerTokenData: data)
+                print("[Radar] Starting UWB session with peer \(peripheral.identifier.uuidString.prefix(8))")
+            }
+        }
+    }
+
     nonisolated func didReceiveKeepalive(from peripheral: CBPeripheral) {
         // Connection is alive — nothing specific to do
     }
@@ -289,6 +304,9 @@ extension RadarViewModel: MarcoPeerDelegate {
     }
 
     nonisolated func didDisconnectPeer(_ peripheral: CBPeripheral) {
+        Task { @MainActor in
+            uwbManager.stop() // Stop UWB when peer disconnects
+        }
         print("[Radar] Peer disconnected: \(peripheral.identifier.uuidString.prefix(8))")
     }
 }

@@ -2,62 +2,70 @@ import SwiftUI
 
 struct SetupView: View {
     @ObservedObject var viewModel: RadarViewModel
+    @State private var animateIcon = false
+
+    private var canStart: Bool {
+        !viewModel.myHash.isEmpty && viewModel.contactManager.isAuthorized
+    }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 28) {
                 // Header
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 48))
+                        .font(.system(size: 52))
                         .foregroundColor(.blue)
+                        .scaleEffect(animateIcon ? 1.05 : 1.0)
+                        .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: animateIcon)
+                        .onAppear { animateIcon = true }
 
                     Text("Marco")
                         .font(.largeTitle.weight(.bold))
 
-                    Text("Find your people when it matters most.\nNo internet needed.")
+                    Text("Find your people when it matters most")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
                 }
-                .padding(.top, 20)
+                .padding(.top, 30)
 
-                // Phone number
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Your Phone Number")
+                // Phone number card
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("Your Phone Number", systemImage: "phone.fill")
                         .font(.headline)
-
-                    Text("Hashed locally — never stored or sent as plain text")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
 
                     TextField("e.g. 555-123-4567", text: $viewModel.myPhoneNumber)
                         .textFieldStyle(.roundedBorder)
+                        .font(.body.monospaced())
                         #if os(iOS)
                         .keyboardType(.phonePad)
                         #endif
 
                     if !viewModel.myHash.isEmpty {
-                        HStack {
-                            Text("Your hash:")
+                        HStack(spacing: 4) {
+                            Image(systemName: "lock.shield.fill")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.green)
                             Text(viewModel.myHash)
-                                .font(.caption.monospaced())
-                                .foregroundColor(.blue)
+                                .font(.caption2.monospaced())
+                                .foregroundColor(.secondary)
                         }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
                     }
+
+                    Text("Hashed locally. Never stored or sent as plain text.")
+                        .font(.caption2)
+                        .foregroundColor(.secondary.opacity(0.7))
                 }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
                 .padding(.horizontal)
 
-                Divider()
-                    .padding(.horizontal)
-
-                // Permissions
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Permissions")
+                // Permissions card
+                VStack(alignment: .leading, spacing: 14) {
+                    Label("Permissions", systemImage: "checkmark.shield.fill")
                         .font(.headline)
-                        .padding(.horizontal)
 
                     PermissionRow(
                         icon: "dot.radiowaves.left.and.right",
@@ -65,15 +73,14 @@ struct SetupView: View {
                         status: bluetoothStatus,
                         isGranted: viewModel.centralManager.bluetoothState == .poweredOn
                     )
-                    .padding(.horizontal)
 
                     HStack {
                         PermissionRow(
-                            icon: "person.2",
+                            icon: "person.2.fill",
                             title: "Contacts",
                             status: viewModel.contactManager.isAuthorized
-                                ? "\(viewModel.contactManager.hashCount) hashes loaded"
-                                : "Not authorized",
+                                ? "\(viewModel.contactManager.hashCount) contacts hashed"
+                                : "Required for matching",
                             isGranted: viewModel.contactManager.isAuthorized
                         )
 
@@ -85,12 +92,49 @@ struct SetupView: View {
                             .controlSize(.small)
                         }
                     }
-                    .padding(.horizontal)
+
+                    if viewModel.uwbManager.isSupported {
+                        PermissionRow(
+                            icon: "scope",
+                            title: "Ultra-Wideband",
+                            status: "Precision direction finding",
+                            isGranted: true
+                        )
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal)
+
+                // Start button
+                Button {
+                    viewModel.startRadar()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                        Text("Start Scanning")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+                .disabled(!canStart)
+                .padding(.horizontal)
+
+                if !canStart && viewModel.myHash.isEmpty {
+                    Text("Enter your phone number to begin")
+                        .font(.caption)
+                        .foregroundColor(.orange)
                 }
 
-                Spacer()
+                Spacer(minLength: 40)
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: viewModel.myHash.isEmpty)
+        .animation(.easeInOut(duration: 0.3), value: viewModel.contactManager.isAuthorized)
     }
 
     private var bluetoothStatus: String {
@@ -111,14 +155,15 @@ struct PermissionRow: View {
     let isGranted: Bool
 
     var body: some View {
-        HStack {
+        HStack(spacing: 10) {
             Image(systemName: icon)
-                .frame(width: 24)
+                .font(.system(size: 16))
+                .frame(width: 28)
                 .foregroundColor(isGranted ? .green : .orange)
 
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.medium))
                 Text(status)
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -128,6 +173,7 @@ struct PermissionRow: View {
 
             Image(systemName: isGranted ? "checkmark.circle.fill" : "exclamationmark.circle")
                 .foregroundColor(isGranted ? .green : .orange)
+                .font(.system(size: 18))
         }
     }
 }
