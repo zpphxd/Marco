@@ -24,27 +24,43 @@ enum PositionEstimator {
         myFingerprint: [LandmarkSighting],
         theirFingerprint: [LandmarkSighting]
     ) -> RelativePosition? {
-        // Build lookup for their fingerprint
+        print("[Position] Comparing fingerprints: mine=\(myFingerprint.count) theirs=\(theirFingerprint.count)")
+
         let theirMap = Dictionary(uniqueKeysWithValues: theirFingerprint.map { ($0.landmarkID, $0.rssi) })
 
-        // Find shared landmarks
-        var shared: [(myRSSI: Double, theirRSSI: Double)] = []
+        var shared: [(landmarkID: String, myRSSI: Double, theirRSSI: Double)] = []
         for mine in myFingerprint {
             if let theirs = theirMap[mine.landmarkID] {
-                shared.append((myRSSI: Double(mine.rssi), theirRSSI: Double(theirs)))
+                shared.append((landmarkID: mine.landmarkID, myRSSI: Double(mine.rssi), theirRSSI: Double(theirs)))
             }
         }
 
-        guard !shared.isEmpty else { return nil }
-
-        switch shared.count {
-        case 1:
-            return estimateFromSingle(shared[0])
-        case 2:
-            return estimateFromPair(shared[0], shared[1])
-        default:
-            return estimateFromMultiple(shared)
+        if shared.isEmpty {
+            print("[Position] No shared landmarks found")
+            return nil
         }
+
+        print("[Position] \(shared.count) shared landmarks:")
+        for s in shared {
+            let myDist = rssiToDistance(s.myRSSI)
+            let theirDist = rssiToDistance(s.theirRSSI)
+            print("[Position]   [\(s.landmarkID.prefix(8))] myRSSI=\(Int(s.myRSSI))→\(String(format: "%.1f", myDist))m theirRSSI=\(Int(s.theirRSSI))→\(String(format: "%.1f", theirDist))m Δ=\(String(format: "%.1f", abs(theirDist - myDist)))m")
+        }
+
+        let pairs = shared.map { (myRSSI: $0.myRSSI, theirRSSI: $0.theirRSSI) }
+
+        let result: RelativePosition
+        switch pairs.count {
+        case 1:
+            result = estimateFromSingle(pairs[0])
+        case 2:
+            result = estimateFromPair(pairs[0], pairs[1])
+        default:
+            result = estimateFromMultiple(pairs)
+        }
+
+        print("[Position] Result: \(String(format: "%.1f", result.estimatedDistance))m confidence=\(String(format: "%.0f", result.confidence * 100))% method=\(result.method) bearing=\(result.bearing.map { String(format: "%.0f°", $0) } ?? "none")")
+        return result
     }
 
     // MARK: - 1 shared landmark: basic distance ratio

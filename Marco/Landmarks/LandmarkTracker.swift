@@ -2,6 +2,27 @@ import Foundation
 import CoreBluetooth
 import CryptoKit
 
+// Known manufacturer IDs for logging
+private let knownManufacturers: [UInt16: String] = [
+    0x004C: "Apple",
+    0x0075: "Samsung",
+    0x0006: "Microsoft",
+    0x00E0: "Google",
+    0x0059: "Nordic Semi",
+    0x0310: "Tile",
+    0x01D1: "Xiaomi",
+    0x0157: "Huawei",
+    0x0087: "Garmin",
+    0x012D: "Sony",
+    0x000F: "Broadcom",
+    0x0301: "Bose",
+    0x05A7: "Sonos",
+    0x00DC: "Oral-B",
+    0x06D1: "LG",
+    0x04A8: "Govee",
+    0x0A06: "Ecobee",
+]
+
 struct Landmark: Identifiable {
     let id: String
     var localName: String?
@@ -11,29 +32,36 @@ struct Landmark: Identifiable {
     var rssiSamples: [Double]
     var firstSeen: Date
     var lastSeen: Date
+    var sampleCount: Int = 0
 
     var rssiVariance: Double {
         guard rssiSamples.count >= 3 else { return 999 }
         let mean = rssiSamples.reduce(0, +) / Double(rssiSamples.count)
         let variance = rssiSamples.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Double(rssiSamples.count)
-        return sqrt(variance) // standard deviation
+        return sqrt(variance)
     }
 
     var isStable: Bool {
         let age = Date().timeIntervalSince(firstSeen)
-        guard age > 15 else { return false } // need 15s of data
-
-        // Low RSSI variance = stable position
+        guard age > 15 else { return false }
         let stableVariance = rssiVariance < 5.0
-
-        // Non-Apple devices more likely to have static MAC
         let likelyStaticMAC = manufacturerID != 0x004C
-
-        // Has a name = likely infrastructure device
         let hasName = localName != nil && !(localName?.isEmpty ?? true)
-
-        // Stable if low variance OR (has name + moderate variance)
         return stableVariance || (hasName && likelyStaticMAC && rssiVariance < 8.0)
+    }
+
+    var manufacturerName: String {
+        guard let id = manufacturerID else { return "Unknown" }
+        return knownManufacturers[id] ?? String(format: "0x%04X", id)
+    }
+
+    var stabilityReason: String {
+        if rssiVariance < 5.0 { return "low-variance(\(String(format: "%.1f", rssiVariance)))" }
+        let hasName = localName != nil && !(localName?.isEmpty ?? true)
+        let notApple = manufacturerID != 0x004C
+        if hasName && notApple && rssiVariance < 8.0 { return "named+static-mac" }
+        if Date().timeIntervalSince(firstSeen) <= 15 { return "too-young" }
+        return "unstable(var=\(String(format: "%.1f", rssiVariance)))"
     }
 }
 
@@ -46,8 +74,8 @@ class LandmarkTracker: NSObject, ObservableObject {
     private var centralManager: CBCentralManager?
     private var cleanupTimer: Timer?
     private var isScanning = false
+    private var logCycle = 0
 
-    // Max 30 seconds of RSSI samples per landmark
     private let maxSamples = 30
 
     var stableLandmarks: [Landmark] {
@@ -58,6 +86,7 @@ class LandmarkTracker: NSObject, ObservableObject {
         guard !isScanning else { return }
         if centralManager == nil {
             centralManager = CBCentralManager(delegate: self, queue: nil)
+            print("[Landmarks] Initializing CBCentralManager...")
         } else {
             beginScanning()
         }
@@ -74,56 +103,94 @@ class LandmarkTracker: NSObject, ObservableObject {
         cleanupTimer?.invalidate()
         cleanupTimer = nil
         isScanning = false
+        print("[Landmarks] Stopped scanning")
     }
 
     func currentFingerprint() -> [LandmarkSighting] {
-        stableLandmarks.map { landmark in
+        let fp = stableLandmarks.map { landmark in
             LandmarkSighting(landmarkID: landmark.id, rssi: Int(landmark.smoothedRSSI))
         }
+        if !fp.isEmpty {
+            print("[Landmarks] Fingerprint: \(fp.count) landmarks -> [\(fp.map { "\($0.landmarkID.prefix(8)):\($0.rssi)" }.joined(separator: ", "))]")
+        }
+        return fp
     }
 
     private func beginScanning() {
-        guard let cm = centralManager, cm.state == .poweredOn else { return }
+        guard let cm = centralManager, cm.state == .poweredOn else {
+            print("[Landmarks] Cannot scan — BLE state: \(centralManager?.state.rawValue ?? -1)")
+            return
+        }
 
-        // Scan for ALL devices to find landmarks
         cm.scanForPeripherals(
             withServices: nil,
             options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
         )
         isScanning = true
+        print("[Landmarks] Scanning ALL BLE devices for landmarks...")
     }
 
     private func cleanup() {
+        logCycle += 1
         let cutoff = Date().addingTimeInterval(-60)
         let before = landmarks.count
+        let removedNames = landmarks.filter { $0.value.lastSeen <= cutoff }.values.map { $0.localName ?? $0.id.prefix(8).description }
         landmarks = landmarks.filter { $0.value.lastSeen > cutoff }
         let removed = before - landmarks.count
+
         if removed > 0 {
-            print("[Landmarks] Cleaned up \(removed) stale landmarks")
+            print("[Landmarks] Cleaned up \(removed): [\(removedNames.joined(separator: ", "))]")
         }
+
         landmarkCount = stableLandmarks.count
-        logLandmarkSummary()
+        logFullReport()
     }
 
-    private func logLandmarkSummary() {
-        let stable = stableLandmarks
-        guard !stable.isEmpty else { return }
-        print("[Landmarks] === \(stable.count) stable / \(landmarks.count) total ===")
-        for lm in stable.sorted(by: { $0.smoothedRSSI > $1.smoothedRSSI }) {
-            let name = lm.localName ?? "unnamed"
-            let mfg = lm.manufacturerID.map { String(format: "0x%04X", $0) } ?? "???"
-            let age = Int(Date().timeIntervalSince(lm.firstSeen))
-            print("[Landmarks]  \(name) | mfg=\(mfg) | RSSI=\(Int(lm.smoothedRSSI)) | var=\(String(format: "%.1f", lm.rssiVariance)) | \(age)s | id=\(lm.id.prefix(12))")
+    private func logFullReport() {
+        let all = Array(landmarks.values)
+        let stable = all.filter { $0.isStable }
+        let unstable = all.filter { !$0.isStable }
+
+        print("")
+        print("[Landmarks] ╔══════════════════════════════════════════════════════════")
+        print("[Landmarks] ║ REPORT #\(logCycle) — \(stable.count) stable / \(all.count) total / \(totalDevicesSeen) ever seen")
+        print("[Landmarks] ╠══════════════════════════════════════════════════════════")
+
+        if stable.isEmpty {
+            print("[Landmarks] ║ No stable landmarks yet (need 15s+ of low-variance data)")
+        } else {
+            print("[Landmarks] ║ STABLE LANDMARKS (used for triangulation):")
+            for lm in stable.sorted(by: { $0.smoothedRSSI > $1.smoothedRSSI }) {
+                let name = (lm.localName ?? "unnamed").padding(toLength: 20, withPad: " ", startingAt: 0)
+                let mfg = lm.manufacturerName.padding(toLength: 10, withPad: " ", startingAt: 0)
+                let age = Int(Date().timeIntervalSince(lm.firstSeen))
+                let dist = PositionEstimator.rssiToDistance(lm.smoothedRSSI)
+                print("[Landmarks] ║  ✓ \(name) \(mfg) RSSI=\(String(format: "%3d", Int(lm.smoothedRSSI))) σ=\(String(format: "%.1f", lm.rssiVariance)) ~\(String(format: "%.1f", dist))m \(age)s \(lm.stabilityReason) [\(lm.id.prefix(8))]")
+            }
         }
+
+        if !unstable.isEmpty && logCycle % 3 == 0 { // show unstable every 3rd cycle to reduce noise
+            print("[Landmarks] ╠──────────────────────────────────────────────────────────")
+            print("[Landmarks] ║ UNSTABLE (not used — showing why):")
+            for lm in unstable.sorted(by: { $0.smoothedRSSI > $1.smoothedRSSI }).prefix(10) {
+                let name = (lm.localName ?? "unnamed").padding(toLength: 20, withPad: " ", startingAt: 0)
+                let mfg = lm.manufacturerName.padding(toLength: 10, withPad: " ", startingAt: 0)
+                let age = Int(Date().timeIntervalSince(lm.firstSeen))
+                print("[Landmarks] ║  ✗ \(name) \(mfg) RSSI=\(String(format: "%3d", Int(lm.smoothedRSSI))) σ=\(String(format: "%.1f", lm.rssiVariance)) \(age)s \(lm.stabilityReason)")
+            }
+            if unstable.count > 10 {
+                print("[Landmarks] ║  ... +\(unstable.count - 10) more unstable devices")
+            }
+        }
+
+        print("[Landmarks] ╚══════════════════════════════════════════════════════════")
+        print("")
     }
 
-    /// Generate a stable fingerprint ID for a device
     private func stableID(peripheral: CBPeripheral, advertisementData: [String: Any]) -> String {
-        // Try manufacturer data + service UUIDs + name for a stable fingerprint
         var components: [String] = []
 
         if let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data {
-            // Use first 4 bytes of manufacturer data (company ID + type)
             let prefix = mfg.prefix(4)
             components.append(prefix.map { String(format: "%02x", $0) }.joined())
         }
@@ -140,14 +207,12 @@ class LandmarkTracker: NSObject, ObservableObject {
             components.append("tx\(txPower)")
         }
 
-        // If we have enough data for a stable fingerprint, hash it
         if components.count >= 2 {
             let combined = components.joined(separator: "|")
             let digest = SHA256.hash(data: Data(combined.utf8))
             return digest.prefix(8).map { String(format: "%02x", $0) }.joined()
         }
 
-        // Fall back to peripheral UUID (works for non-rotating devices)
         return peripheral.identifier.uuidString
     }
 }
@@ -156,6 +221,10 @@ class LandmarkTracker: NSObject, ObservableObject {
 
 extension LandmarkTracker: CBCentralManagerDelegate {
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        let stateNames = ["unknown", "resetting", "unsupported", "unauthorized", "poweredOff", "poweredOn"]
+        let stateName = central.state.rawValue < stateNames.count ? stateNames[central.state.rawValue] : "?"
+        print("[Landmarks] Bluetooth state: \(stateName) (\(central.state.rawValue))")
+
         if central.state == .poweredOn {
             Task { @MainActor in
                 beginScanning()
@@ -170,7 +239,7 @@ extension LandmarkTracker: CBCentralManagerDelegate {
         rssi RSSI: NSNumber
     ) {
         let rssi = RSSI.intValue
-        guard rssi != 127 && rssi < 0 else { return } // invalid readings
+        guard rssi != 127 && rssi < 0 else { return }
 
         Task { @MainActor in
             let id = stableID(peripheral: peripheral, advertisementData: advertisementData)
@@ -182,10 +251,10 @@ extension LandmarkTracker: CBCentralManagerDelegate {
             }
 
             if var landmark = landmarks[id] {
-                // Update existing
                 let smoothed = landmark.rssiFilter.update(measurement: Double(rssi))
                 landmark.smoothedRSSI = smoothed
                 landmark.lastSeen = Date()
+                landmark.sampleCount += 1
                 landmark.rssiSamples.append(Double(rssi))
                 if landmark.rssiSamples.count > maxSamples {
                     landmark.rssiSamples.removeFirst()
@@ -193,7 +262,6 @@ extension LandmarkTracker: CBCentralManagerDelegate {
                 if name != nil { landmark.localName = name }
                 landmarks[id] = landmark
             } else {
-                // New device
                 var filter = KalmanFilter()
                 let smoothed = filter.update(measurement: Double(rssi))
                 landmarks[id] = Landmark(
@@ -204,9 +272,13 @@ extension LandmarkTracker: CBCentralManagerDelegate {
                     smoothedRSSI: smoothed,
                     rssiSamples: [Double(rssi)],
                     firstSeen: Date(),
-                    lastSeen: Date()
+                    lastSeen: Date(),
+                    sampleCount: 1
                 )
                 totalDevicesSeen += 1
+
+                let mfgName = mfgID.flatMap { knownManufacturers[$0] } ?? mfgID.map { String(format: "0x%04X", $0) } ?? "???"
+                print("[Landmarks] NEW #\(totalDevicesSeen): \(name ?? "unnamed") | \(mfgName) | RSSI=\(rssi) | id=\(id.prefix(12))")
             }
 
             landmarkCount = stableLandmarks.count

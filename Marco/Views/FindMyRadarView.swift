@@ -620,47 +620,49 @@ struct FindMyRadarView: View {
 
     // MARK: - Arrow Animation
 
+    @State private var arrowLogCounter = 0
+
     private func updateArrow() {
         let currentHeading = headingManager.heading
         let currentRSSI = contact.rssi
 
-        // Record this (heading, rssi) sample
         headingSamples.append((heading: currentHeading, rssi: currentRSSI))
 
-        // Keep last 30 samples (~15 seconds of data)
         if headingSamples.count > 30 {
             headingSamples.removeFirst()
         }
 
-        // Track the best heading we've seen
         if currentRSSI > bestRSSI {
             bestRSSI = currentRSSI
             bestHeading = currentHeading
+            print("[Compass] New best: heading=\(String(format: "%.0f", bestHeading))° RSSI=\(bestRSSI)")
         }
 
-        // Decay best RSSI slowly so it adapts if target moves
         if headingSamples.count > 10 {
             bestRSSI = max(bestRSSI - 1, currentRSSI)
         }
 
-        // Compute weighted average bearing — headings with stronger RSSI
-        // pull the arrow more toward them
         if headingSamples.count >= 5 {
             targetBearing = weightedBearing(from: headingSamples)
         } else {
-            // Not enough data — use trend-based fallback
             switch contact.trend {
             case .approaching:
                 targetBearing = currentHeading
             case .receding:
                 targetBearing = currentHeading + 180
             case .stable:
-                break // keep last estimate
+                break
             }
         }
 
-        // Arrow shows relative angle (dial already compensates for heading)
         let relativeAngle = targetBearing - currentHeading
+
+        // Log every 5th update
+        arrowLogCounter += 1
+        if arrowLogCounter % 5 == 0 {
+            let dist = distanceMeters
+            print("[Compass] heading=\(String(format: "%.0f", currentHeading))° RSSI=\(currentRSSI) bearing=\(String(format: "%.0f", targetBearing))° arrow=\(String(format: "%.0f", relativeAngle))° dist=\(String(format: "%.1f", dist))m trend=\(contact.trend.rawValue) samples=\(headingSamples.count) signal=\(String(format: "%.0f", signalStrength * 100))%")
+        }
 
         withAnimation(.spring(response: 0.8, dampingFraction: 0.6)) {
             arrowRotation = relativeAngle

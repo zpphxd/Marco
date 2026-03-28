@@ -91,10 +91,17 @@ class RadarViewModel: ObservableObject {
 
     // MARK: - Discovery Processing
 
+    @MainActor private var discoveryLogCounter = 0
+
     private func processDiscovery(hash: String, rssi: Int) {
         guard hash != myHash else { return }
 
         let distance = DistanceEstimate.from(rssi: rssi)
+        discoveryLogCounter += 1
+        if discoveryLogCounter % 10 == 0 {
+            let isKnown = contactManager.lookup(hash) != nil
+            print("[Radar] Signal: hash=\(hash.prefix(8)) RSSI=\(rssi) dist=\(distance.rawValue) known=\(isKnown) contacts=\(nearbyContacts.count)")
+        }
 
         if let index = nearbyContacts.firstIndex(where: { $0.id == hash }) {
             nearbyContacts[index].rssi = rssi

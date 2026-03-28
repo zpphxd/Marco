@@ -66,12 +66,12 @@ extension BLEScanner: CBCentralManagerDelegate {
             totalDevicesSeen = seenPeripherals.count
         }
 
-        // Match our custom Contact Radar beacon
         guard let localName = advertisementData[CBAdvertisementDataLocalNameKey] as? String,
               localName.hasPrefix(MarcoConstants.hashPrefix)
         else { return }
 
         let hash = String(localName.dropFirst(MarcoConstants.hashPrefix.count))
+        print("[BLE] Marco device detected: hash=\(hash) RSSI=\(rssi) peripheral=\(peripheral.identifier.uuidString.prefix(8))")
         delegate?.scanner(self, didDiscover: hash, rssi: rssi)
     }
 }
