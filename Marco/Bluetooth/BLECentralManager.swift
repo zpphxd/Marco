@@ -104,6 +104,28 @@ class BLECentralManager: NSObject, ObservableObject {
         connectedPeers.values.map(\.peripheral)
     }
 
+    /// Try to connect to a peer we know about from the peripheral side
+    /// (they connected to us, now we connect back to them)
+    func connectBackToPeer(identifier: UUID) {
+        guard connectedPeers[identifier] == nil,
+              connectingPeers[identifier] == nil else { return }
+
+        // Use retrievePeripherals to get CBPeripheral from identifier
+        guard let cm = centralManager else { return }
+        let peripherals = cm.retrievePeripherals(withIdentifiers: [identifier])
+        guard let peripheral = peripherals.first else {
+            // Try retrieveConnectedPeripherals with our service UUID
+            let connected = cm.retrieveConnectedPeripherals(withServices: [MarcoGATT.serviceUUID])
+            if let match = connected.first(where: { $0.identifier == identifier }) {
+                connectToPeer(match)
+                print("[Central] Connecting back to peer \(identifier.uuidString.prefix(8)) via retrieveConnected")
+            }
+            return
+        }
+        connectToPeer(peripheral)
+        print("[Central] Connecting back to peer \(identifier.uuidString.prefix(8)) via retrievePeripherals")
+    }
+
     // MARK: - Scanning
 
     private func beginScanning() {

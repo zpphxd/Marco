@@ -41,6 +41,14 @@ class RadarViewModel: ObservableObject {
             }
         }
 
+        // When someone reads our hash (they found us), connect back to them
+        peripheralManager.onPeerConnected = { [weak self] central in
+            Task { @MainActor [weak self] in
+                print("[Radar] Peer \(central.identifier.uuidString.prefix(8)) read our hash — connecting back")
+                self?.centralManager.connectBackToPeer(identifier: central.identifier)
+            }
+        }
+
         // Load persisted phone number
         if let saved = UserDefaults.standard.string(forKey: "marco_phone_number"), !saved.isEmpty {
             myPhoneNumber = saved

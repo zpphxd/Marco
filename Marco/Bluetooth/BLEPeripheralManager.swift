@@ -32,6 +32,8 @@ class BLEPeripheralManager: NSObject, ObservableObject {
     // Mesh: delegate for incoming mesh messages
     var onMeshMessageReceived: ((Data, CBCentral) -> Void)?
     var onSignalWriteReceived: ((CBCentral) -> Void)?
+    /// Called when a peer reads our hash — the central manager can try to discover them back
+    var onPeerConnected: ((CBCentral) -> Void)?
 
     func start() {
         guard peripheralManager == nil else { return }
@@ -253,6 +255,7 @@ extension BLEPeripheralManager: CBPeripheralManagerDelegate {
             case MarcoGATT.hashCharUUID:
                 responseData = myHash
                 print("[Peripheral] Hash read by \(request.central.identifier.uuidString.prefix(8))")
+                onPeerConnected?(request.central)
             case MarcoGATT.landmarkCharUUID:
                 responseData = landmarkData
                 print("[Peripheral] Landmarks read by \(request.central.identifier.uuidString.prefix(8)): \(landmarkData.count) bytes")
