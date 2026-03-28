@@ -389,8 +389,12 @@ extension BLECentralManager: CBPeripheralDelegate {
                 }
 
             case MarcoGATT.signalCharUUID:
-                // Keepalive notification received — we're still alive
-                print("[Central] Keepalive notification from \(peripheral.identifier.uuidString.prefix(8))")
+                // Keepalive notification received — write back immediately to sustain the cycle
+                // This is reactive (not timer-based) so it works even when app was suspended
+                print("[Central] Keepalive notification from \(peripheral.identifier.uuidString.prefix(8)) — writing back")
+                writeKeepalive(to: peripheral)
+                // Also read landmarks while we're awake
+                readLandmarks(from: peripheral)
                 peerDelegate?.didReceiveKeepalive(from: peripheral)
 
             case MarcoGATT.meshCharUUID:

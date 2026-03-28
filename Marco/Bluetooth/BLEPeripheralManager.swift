@@ -26,7 +26,8 @@ class BLEPeripheralManager: NSObject, ObservableObject {
     private var uwbTokenData: Data?
 
     // Keepalive: track which centrals have written to signal, schedule notify back
-    private var pendingKeepalives: [CBCentral: Timer] = [:]
+    // Keyed by UUID (not CBCentral object) to survive state restoration
+    private var pendingKeepalives: [UUID: (central: CBCentral, timer: Timer)] = [:]
 
     // Mesh: delegate for incoming mesh messages
     var onMeshMessageReceived: ((Data, CBCentral) -> Void)?
@@ -44,7 +45,7 @@ class BLEPeripheralManager: NSObject, ObservableObject {
     func stop() {
         peripheralManager?.stopAdvertising()
         peripheralManager?.removeAllServices()
-        pendingKeepalives.values.forEach { $0.invalidate() }
+        pendingKeepalives.values.forEach { $0.timer.invalidate() }
         pendingKeepalives.removeAll()
         isAdvertising = false
         print("[Peripheral] Stopped")
@@ -59,11 +60,20 @@ class BLEPeripheralManager: NSObject, ObservableObject {
     }
 
     func updateLandmarks(_ sightings: [LandmarkSighting]) {
-        if let encoded = try? JSONEncoder().encode(sightings) {
-            // Truncate to GATT max if needed
-            landmarkData = encoded.prefix(MarcoGATT.maxCharacteristicSize)
-            landmarkCharacteristic?.value = landmarkData
+        // Serialize strongest landmarks first, fitting within GATT size limit
+        // Each sighting is ~40 bytes JSON, so ~12 fit in 512 bytes
+        let sorted = sightings.sorted { $0.rssi > $1.rssi }
+        var toEncode = sorted
+        while !toEncode.isEmpty {
+            if let encoded = try? JSONEncoder().encode(toEncode),
+               encoded.count <= MarcoGATT.maxCharacteristicSize {
+                landmarkData = encoded
+                landmarkCharacteristic?.value = landmarkData
+                return
+            }
+            toEncode = Array(toEncode.dropLast()) // remove weakest signal
         }
+        landmarkData = Data()
     }
 
     func updateUWBToken(_ tokenData: Data?) {
@@ -152,31 +162,29 @@ class BLEPeripheralManager: NSObject, ObservableObject {
     // MARK: - Keepalive
 
     private func scheduleKeepaliveResponse(for central: CBCentral) {
-        // Cancel any existing timer for this central
-        pendingKeepalives[central]?.invalidate()
+        let uuid = central.identifier
+        pendingKeepalives[uuid]?.timer.invalidate()
 
-        // After delay, send notification to wake the peer
         let timer = Timer.scheduledTimer(withTimeInterval: MarcoGATT.keepaliveDelay, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.sendKeepaliveNotification(to: central)
             }
         }
-        pendingKeepalives[central] = timer
+        pendingKeepalives[uuid] = (central: central, timer: timer)
     }
 
     private func sendKeepaliveNotification(to central: CBCentral) {
         guard let char = signalCharacteristic, let pm = peripheralManager else { return }
 
-        let timestamp = Data(withUnsafeBytes(of: Date().timeIntervalSince1970) { Data($0) })
-        let sent = pm.updateValue(timestamp, for: char, onSubscribedCentrals: [central])
+        let sent = pm.updateValue(Data(), for: char, onSubscribedCentrals: [central])
 
         if sent {
-            print("[Peripheral] Keepalive notification sent to \(central.identifier.uuidString.prefix(8))")
+            print("[Peripheral] Keepalive notify → \(central.identifier.uuidString.prefix(8))")
         } else {
-            print("[Peripheral] Keepalive notification queued (transmit queue full)")
+            print("[Peripheral] Keepalive notify queued (queue full)")
         }
 
-        pendingKeepalives.removeValue(forKey: central)
+        pendingKeepalives.removeValue(forKey: central.identifier)
     }
 }
 
@@ -307,8 +315,8 @@ extension BLEPeripheralManager: CBPeripheralManagerDelegate {
 
     nonisolated func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         Task { @MainActor in
-            pendingKeepalives[central]?.invalidate()
-            pendingKeepalives.removeValue(forKey: central)
+            pendingKeepalives[central.identifier]?.timer.invalidate()
+            pendingKeepalives.removeValue(forKey: central.identifier)
         }
         print("[Peripheral] \(central.identifier.uuidString.prefix(8)) unsubscribed")
     }
