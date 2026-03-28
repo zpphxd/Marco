@@ -1,0 +1,91 @@
+======================================================================
+MARCO v2 — Live Test Results
+======================================================================
+
+1. LANDMARK TRIANGULATION DISTANCE vs TIME
+----------------------------------------------------------------------
+
+ 11.0m │                                                       
+       │                                                       
+       │                                          ●            
+       │                                      ● ●● ●           
+  8.7m │                                    ●●       ●         
+       │                                   ●          ●        
+       │                                 ●             ●       
+       │                               ●●               ●      
+  6.4m │                                                  ●●   
+       │                                                    ● ●
+       │                              ●                        
+       │                          ●●●                          
+  4.1m │                       ● ●                             
+       │                      ●                                
+       │                    ●●                                 
+       │                 ●●                                    
+  1.7m │                                                       
+       │     ●●●●     ●●●                                      
+       │     ●   ●●●●●                                         
+       │                                                       
+       └───────────────────────────────────────────────────────
+        0s               70s              140s             215s
+
+2. KEY METRICS SUMMARY
+----------------------------------------------------------------------
+
+  Closest distance:    0.6m (phones touching)
+  Farthest distance:   10.0m (different rooms)
+  Average distance:    4.6m
+  Confidence:          95% (consistent)
+  Max shared landmarks: 11
+  Total landmarks seen: 52+
+  Stable landmarks:    25-37
+
+3. SHARED LANDMARKS USED FOR TRIANGULATION
+----------------------------------------------------------------------
+
+  ID           Device Name               Type       Role
+  ──────────── ───────────────────────── ────────── ──────────────────────────────
+  23d2deed     Samsung S95CA 65          Samsung    Passive reference point
+  585f1b88     LAP-V201S-WUS             LG         Passive reference point
+  f02d7cc5     M10EX75                   Xiaomi     Passive reference point
+  dc334769     S31 3FB8 LE               Sonos      Passive reference point
+  8fc38c5a     4.1.1-3-0                 Unknown    Passive reference point
+  7ab67a1b     S37 E764 LE               Sonos      Passive reference point
+  8a482dac     S38 6D4A LE               Sonos      Passive reference point
+  9b6a261c     net                       0x06A8     Passive reference point
+  42344f02     iO Sense                  Oral-B     Passive reference point
+  cff8a514     S38 6C5E LE               Sonos      Passive reference point
+  e7754883     M10F4E7                   Xiaomi     Passive reference point
+  c9a317bb     MagniFi Mini AX-6856      Unknown    Passive reference point
+  246cd758     M10F77J                   Xiaomi     Passive reference point
+  62fd66af     M10F7RF                   Xiaomi     Passive reference point
+  b7df9082     [TV] TeeVee               Samsung    Passive reference point
+
+4. SYSTEM STATUS
+----------------------------------------------------------------------
+
+  ✅ GATT hash exchange:        Working (via characteristic read)
+  ✅ Herald keepalive:           Cycling (write → 2s → notify)
+  ✅ Landmark fingerprint GATT:  Exchanging (496 bytes per read)
+  ✅ Cross-device landmark IDs:  Matching (10-11 shared consistently)
+  ✅ Trilateration:              95% confidence, 0.6-10m range
+  ✅ Auto-reconnect:             Working (recovered from timeout)
+  ✅ Phone number persistence:   Working (UserDefaults)
+  ✅ Contact matching:           Working (Hubs Powers identified)
+  ❌ MultipeerConnectivity:      Removed (replaced by GATT)
+  ⏳ UWB direction finding:      Not yet implemented
+  ⏳ Background mode:            Herald keepalive ready, untested
+
+5. DISTANCE ACCURACY ANALYSIS
+----------------------------------------------------------------------
+
+  When phones were side by side (~0-1m actual):
+    Landmark estimate: 0.6-1.5m ← accurate!
+    RSSI-only:         0.1-0.9m ← also good at close range
+
+  When phones were in different rooms (~5-10m actual):
+    Landmark estimate: 5.9-10.0m ← tracks real distance well
+    RSSI-only:         6.3-27.5m ← wildly inaccurate at range
+
+  Conclusion: Landmark triangulation provides MUCH more
+  stable distance estimates than raw RSSI, especially at
+  medium to long range where RSSI becomes unreliable.
