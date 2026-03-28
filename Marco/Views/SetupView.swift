@@ -63,7 +63,7 @@ struct SetupView: View {
                         icon: "dot.radiowaves.left.and.right",
                         title: "Bluetooth",
                         status: bluetoothStatus,
-                        isGranted: viewModel.scanner.bluetoothState == .poweredOn
+                        isGranted: viewModel.centralManager.bluetoothState == .poweredOn
                     )
                     .padding(.horizontal)
 
@@ -94,7 +94,7 @@ struct SetupView: View {
     }
 
     private var bluetoothStatus: String {
-        switch viewModel.scanner.bluetoothState {
+        switch viewModel.centralManager.bluetoothState {
         case .poweredOn: return "Ready"
         case .poweredOff: return "Turn on Bluetooth"
         case .unauthorized: return "Permission denied"

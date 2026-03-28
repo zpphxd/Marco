@@ -156,7 +156,7 @@ struct ContentView: View {
             )
             statCard(
                 icon: "point.3.connected.trianglepath.dotted",
-                value: "\(viewModel.meshManager?.connectedPeers ?? 0)",
+                value: "\(viewModel.centralManager.connectedPeerCount)",
                 label: "Mesh Peers",
                 color: .orange
             )
@@ -209,10 +209,9 @@ struct ContentView: View {
                 .foregroundColor(.secondary.opacity(0.6))
 
             // Live mesh info
-            if let mesh = viewModel.meshManager, mesh.isActive {
+            if viewModel.centralManager.connectedPeerCount > 0 {
                 HStack(spacing: 12) {
-                    Label("\(mesh.connectedPeers) peers", systemImage: "point.3.connected.trianglepath.dotted")
-                    Label("\(mesh.searchesRelayed) relayed", systemImage: "arrow.triangle.swap")
+                    Label("\(viewModel.centralManager.connectedPeerCount) peers", systemImage: "point.3.connected.trianglepath.dotted")
                 }
                 .font(.caption)
                 .foregroundColor(.secondary.opacity(0.5))

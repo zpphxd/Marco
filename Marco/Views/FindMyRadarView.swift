@@ -129,7 +129,7 @@ struct FindMyRadarView: View {
     private var distanceMeters: Double {
         if let mesh = meshDistance { return mesh }
         let n: Double = 2.5
-        let ratio = (-50.0 - Double(contact.rssi)) / (10 * n)
+        let ratio = (-59.0 - Double(contact.rssi)) / (10 * n)
         return pow(10, ratio)
     }
 

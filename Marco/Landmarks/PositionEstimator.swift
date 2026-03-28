@@ -9,7 +9,7 @@ struct RelativePosition {
 
 enum PositionEstimator {
 
-    static let txPower: Double = -50  // typical BLE RSSI at 1 meter
+    static let txPower: Double = -59  // typical BLE RSSI at 1 meter
     static let pathLossExponent: Double = 2.5  // indoor environment
 
     /// Convert RSSI to distance in meters

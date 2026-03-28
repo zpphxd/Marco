@@ -11,15 +11,15 @@
 		AA000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000002 /* ContentView.swift */; };
 		AA000003 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000003 /* SetupView.swift */; };
 		AA000005 /* RadarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000005 /* RadarViewModel.swift */; };
-		AA000006 /* BLEScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006 /* BLEScanner.swift */; };
-		AA000007 /* BLEAdvertiser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000007 /* BLEAdvertiser.swift */; };
+		AA000006 /* BLECentralManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006 /* BLECentralManager.swift */; };
+		AA000007 /* BLEPeripheralManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000007 /* BLEPeripheralManager.swift */; };
+		AA000030 /* GATTProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000030 /* GATTProtocol.swift */; };
 		AA000009 /* ContactHashManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000009 /* ContactHashManager.swift */; };
 		AA000010 /* CryptoUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010 /* CryptoUtils.swift */; };
 		AA000011 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011 /* Models.swift */; };
 		AA000012 /* FindMyRadarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014 /* FindMyRadarView.swift */; };
 		AA000020 /* MeshMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000020 /* MeshMessage.swift */; };
 		AA000021 /* DeduplicationCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000021 /* DeduplicationCache.swift */; };
-		AA000022 /* MeshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000022 /* MeshManager.swift */; };
 		AA000023 /* KalmanFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000023 /* KalmanFilter.swift */; };
 		AA000024 /* LandmarkTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000024 /* LandmarkTracker.swift */; };
 		AA000025 /* PositionEstimator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* PositionEstimator.swift */; };
@@ -31,8 +31,9 @@
 		AB000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AB000003 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
 		AB000005 /* RadarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RadarViewModel.swift; sourceTree = "<group>"; };
-		AB000006 /* BLEScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEScanner.swift; sourceTree = "<group>"; };
-		AB000007 /* BLEAdvertiser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEAdvertiser.swift; sourceTree = "<group>"; };
+		AB000006 /* BLECentralManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLECentralManager.swift; sourceTree = "<group>"; };
+		AB000007 /* BLEPeripheralManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEPeripheralManager.swift; sourceTree = "<group>"; };
+		AB000030 /* GATTProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GATTProtocol.swift; sourceTree = "<group>"; };
 		AB000009 /* ContactHashManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactHashManager.swift; sourceTree = "<group>"; };
 		AB000010 /* CryptoUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoUtils.swift; sourceTree = "<group>"; };
 		AB000011 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -41,7 +42,6 @@
 		AB000014 /* FindMyRadarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindMyRadarView.swift; sourceTree = "<group>"; };
 		AB000020 /* MeshMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshMessage.swift; sourceTree = "<group>"; };
 		AB000021 /* DeduplicationCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeduplicationCache.swift; sourceTree = "<group>"; };
-		AB000022 /* MeshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeshManager.swift; sourceTree = "<group>"; };
 		AB000023 /* KalmanFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KalmanFilter.swift; sourceTree = "<group>"; };
 		AB000024 /* LandmarkTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkTracker.swift; sourceTree = "<group>"; };
 		AB000025 /* PositionEstimator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionEstimator.swift; sourceTree = "<group>"; };
@@ -108,8 +108,9 @@
 		AE000005 /* Bluetooth */ = {
 			isa = PBXGroup;
 			children = (
-				AB000006 /* BLEScanner.swift */,
-				AB000007 /* BLEAdvertiser.swift */,
+				AB000006 /* BLECentralManager.swift */,
+				AB000007 /* BLEPeripheralManager.swift */,
+				AB000030 /* GATTProtocol.swift */,
 			);
 			path = Bluetooth;
 			sourceTree = "<group>";
@@ -151,7 +152,6 @@
 			children = (
 				AB000020 /* MeshMessage.swift */,
 				AB000021 /* DeduplicationCache.swift */,
-				AB000022 /* MeshManager.swift */,
 			);
 			path = Mesh;
 			sourceTree = "<group>";
@@ -238,18 +238,18 @@
 				AA000002 /* ContentView.swift in Sources */,
 				AA000003 /* SetupView.swift in Sources */,
 				AA000005 /* RadarViewModel.swift in Sources */,
-				AA000006 /* BLEScanner.swift in Sources */,
-				AA000007 /* BLEAdvertiser.swift in Sources */,
+				AA000006 /* BLECentralManager.swift in Sources */,
+				AA000007 /* BLEPeripheralManager.swift in Sources */,
 				AA000009 /* ContactHashManager.swift in Sources */,
 				AA000010 /* CryptoUtils.swift in Sources */,
 				AA000011 /* Models.swift in Sources */,
 				AA000012 /* FindMyRadarView.swift in Sources */,
 				AA000020 /* MeshMessage.swift in Sources */,
 				AA000021 /* DeduplicationCache.swift in Sources */,
-				AA000022 /* MeshManager.swift in Sources */,
 				AA000023 /* KalmanFilter.swift in Sources */,
 				AA000024 /* LandmarkTracker.swift in Sources */,
 				AA000025 /* PositionEstimator.swift in Sources */,
+				AA000030 /* GATTProtocol.swift in Sources */,
 				AA000026 /* DemoRadarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

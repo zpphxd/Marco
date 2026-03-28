@@ -4,23 +4,12 @@ import CryptoKit
 
 // Known manufacturer IDs for logging
 private let knownManufacturers: [UInt16: String] = [
-    0x004C: "Apple",
-    0x0075: "Samsung",
-    0x0006: "Microsoft",
-    0x00E0: "Google",
-    0x0059: "Nordic Semi",
-    0x0310: "Tile",
-    0x01D1: "Xiaomi",
-    0x0157: "Huawei",
-    0x0087: "Garmin",
-    0x012D: "Sony",
-    0x000F: "Broadcom",
-    0x0301: "Bose",
-    0x05A7: "Sonos",
-    0x00DC: "Oral-B",
-    0x06D1: "LG",
-    0x04A8: "Govee",
-    0x0A06: "Ecobee",
+    0x004C: "Apple", 0x0075: "Samsung", 0x0006: "Microsoft",
+    0x00E0: "Google", 0x0059: "Nordic Semi", 0x0310: "Tile",
+    0x01D1: "Xiaomi", 0x0157: "Huawei", 0x0087: "Garmin",
+    0x012D: "Sony", 0x000F: "Broadcom", 0x0301: "Bose",
+    0x05A7: "Sonos", 0x00DC: "Oral-B", 0x06D1: "LG",
+    0x04A8: "Govee", 0x0A06: "Ecobee",
 ]
 
 struct Landmark: Identifiable {
@@ -65,17 +54,17 @@ struct Landmark: Identifiable {
     }
 }
 
+/// Tracks nearby BLE devices as positional landmarks.
+/// Receives scan results from BLECentralManager via LandmarkScanDelegate.
+/// No longer runs its own CBCentralManager — uses the unified one.
 @MainActor
 class LandmarkTracker: NSObject, ObservableObject {
     @Published var totalDevicesSeen = 0
     @Published var landmarkCount = 0
 
     private var landmarks: [String: Landmark] = [:]
-    private var centralManager: CBCentralManager?
     private var cleanupTimer: Timer?
-    private var isScanning = false
     private var logCycle = 0
-
     private let maxSamples = 30
 
     var stableLandmarks: [Landmark] {
@@ -83,175 +72,107 @@ class LandmarkTracker: NSObject, ObservableObject {
     }
 
     func start() {
-        guard !isScanning else { return }
-        if centralManager == nil {
-            centralManager = CBCentralManager(delegate: self, queue: nil)
-            print("[Landmarks] Initializing CBCentralManager...")
-        } else {
-            beginScanning()
-        }
-
         cleanupTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.cleanup()
             }
         }
+        print("[Landmarks] Started (receiving scans from unified central)")
     }
 
     func stop() {
-        centralManager?.stopScan()
         cleanupTimer?.invalidate()
         cleanupTimer = nil
-        isScanning = false
-        print("[Landmarks] Stopped scanning")
+        print("[Landmarks] Stopped")
     }
 
     func currentFingerprint() -> [LandmarkSighting] {
         let fp = stableLandmarks.map { landmark in
             LandmarkSighting(landmarkID: landmark.id, rssi: Int(landmark.smoothedRSSI))
         }
-        if !fp.isEmpty {
-            print("[Landmarks] Fingerprint: \(fp.count) landmarks -> [\(fp.map { "\($0.landmarkID.prefix(8)):\($0.rssi)" }.joined(separator: ", "))]")
+        if !fp.isEmpty && logCycle % 3 == 0 {
+            print("[Landmarks] Fingerprint: \(fp.count) landmarks")
         }
         return fp
-    }
-
-    private func beginScanning() {
-        guard let cm = centralManager, cm.state == .poweredOn else {
-            print("[Landmarks] Cannot scan — BLE state: \(centralManager?.state.rawValue ?? -1)")
-            return
-        }
-
-        cm.scanForPeripherals(
-            withServices: nil,
-            options: [CBCentralManagerScanOptionAllowDuplicatesKey: true]
-        )
-        isScanning = true
-        print("[Landmarks] Scanning ALL BLE devices for landmarks...")
     }
 
     private func cleanup() {
         logCycle += 1
         let cutoff = Date().addingTimeInterval(-60)
         let before = landmarks.count
-        let removedNames = landmarks.filter { $0.value.lastSeen <= cutoff }.values.map { $0.localName ?? $0.id.prefix(8).description }
         landmarks = landmarks.filter { $0.value.lastSeen > cutoff }
         let removed = before - landmarks.count
-
         if removed > 0 {
-            print("[Landmarks] Cleaned up \(removed): [\(removedNames.joined(separator: ", "))]")
+            print("[Landmarks] Cleaned up \(removed) stale")
         }
-
         landmarkCount = stableLandmarks.count
-        logFullReport()
+        if logCycle % 3 == 0 {
+            logReport()
+        }
     }
 
-    private func logFullReport() {
-        let all = Array(landmarks.values)
-        let stable = all.filter { $0.isStable }
-        let unstable = all.filter { !$0.isStable }
-
-        print("")
-        print("[Landmarks] ╔══════════════════════════════════════════════════════════")
-        print("[Landmarks] ║ REPORT #\(logCycle) — \(stable.count) stable / \(all.count) total / \(totalDevicesSeen) ever seen")
-        print("[Landmarks] ╠══════════════════════════════════════════════════════════")
-
-        if stable.isEmpty {
-            print("[Landmarks] ║ No stable landmarks yet (need 15s+ of low-variance data)")
-        } else {
-            print("[Landmarks] ║ STABLE LANDMARKS (used for triangulation):")
-            for lm in stable.sorted(by: { $0.smoothedRSSI > $1.smoothedRSSI }) {
-                let name = (lm.localName ?? "unnamed").padding(toLength: 20, withPad: " ", startingAt: 0)
-                let mfg = lm.manufacturerName.padding(toLength: 10, withPad: " ", startingAt: 0)
-                let age = Int(Date().timeIntervalSince(lm.firstSeen))
-                let dist = PositionEstimator.rssiToDistance(lm.smoothedRSSI)
-                print("[Landmarks] ║  ✓ \(name) \(mfg) RSSI=\(String(format: "%3d", Int(lm.smoothedRSSI))) σ=\(String(format: "%.1f", lm.rssiVariance)) ~\(String(format: "%.1f", dist))m \(age)s \(lm.stabilityReason) [\(lm.id.prefix(8))]")
-            }
+    private func logReport() {
+        let stable = stableLandmarks
+        print("[Landmarks] === \(stable.count) stable / \(landmarks.count) total ===")
+        for lm in stable.sorted(by: { $0.smoothedRSSI > $1.smoothedRSSI }).prefix(10) {
+            let name = (lm.localName ?? "unnamed").prefix(20)
+            let dist = PositionEstimator.rssiToDistance(lm.smoothedRSSI)
+            print("[Landmarks]  ✓ \(name) | \(lm.manufacturerName) | RSSI=\(Int(lm.smoothedRSSI)) σ=\(String(format: "%.1f", lm.rssiVariance)) ~\(String(format: "%.1f", dist))m | \(lm.stabilityReason)")
         }
-
-        if !unstable.isEmpty && logCycle % 3 == 0 { // show unstable every 3rd cycle to reduce noise
-            print("[Landmarks] ╠──────────────────────────────────────────────────────────")
-            print("[Landmarks] ║ UNSTABLE (not used — showing why):")
-            for lm in unstable.sorted(by: { $0.smoothedRSSI > $1.smoothedRSSI }).prefix(10) {
-                let name = (lm.localName ?? "unnamed").padding(toLength: 20, withPad: " ", startingAt: 0)
-                let mfg = lm.manufacturerName.padding(toLength: 10, withPad: " ", startingAt: 0)
-                let age = Int(Date().timeIntervalSince(lm.firstSeen))
-                print("[Landmarks] ║  ✗ \(name) \(mfg) RSSI=\(String(format: "%3d", Int(lm.smoothedRSSI))) σ=\(String(format: "%.1f", lm.rssiVariance)) \(age)s \(lm.stabilityReason)")
-            }
-            if unstable.count > 10 {
-                print("[Landmarks] ║  ... +\(unstable.count - 10) more unstable devices")
-            }
+        if stable.count > 10 {
+            print("[Landmarks]  ... +\(stable.count - 10) more")
         }
-
-        print("[Landmarks] ╚══════════════════════════════════════════════════════════")
-        print("")
     }
 
-    private func stableID(peripheral: CBPeripheral, advertisementData: [String: Any]) -> String {
+    /// Generate a stable fingerprint ID for a device.
+    /// NEVER uses peripheral.identifier (it's device-local, different on each phone).
+    /// Uses only advertisement data that both phones would see identically.
+    private func stableID(advertisementData: [String: Any]) -> String? {
         var components: [String] = []
 
-        if let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data {
-            let prefix = mfg.prefix(4)
-            components.append(prefix.map { String(format: "%02x", $0) }.joined())
-        }
-
-        if let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] {
-            components.append(services.map { $0.uuidString }.sorted().joined())
-        }
-
+        // Local name is the most stable identifier
         if let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String, !name.isEmpty {
             components.append(name)
         }
 
-        if let txPower = advertisementData[CBAdvertisementDataTxPowerLevelKey] as? NSNumber {
-            components.append("tx\(txPower)")
+        // Service UUIDs are stable across devices
+        if let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] {
+            components.append(services.map { $0.uuidString }.sorted().joined())
         }
 
-        if components.count >= 2 {
-            let combined = components.joined(separator: "|")
-            let digest = SHA256.hash(data: Data(combined.utf8))
-            return digest.prefix(8).map { String(format: "%02x", $0) }.joined()
+        // Manufacturer company ID (first 2 bytes only — rest may rotate)
+        if let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data, mfg.count >= 2 {
+            let companyID = String(format: "%02x%02x", mfg[0], mfg[1])
+            components.append(companyID)
         }
 
-        return peripheral.identifier.uuidString
+        // Need at least 2 components for a cross-device stable ID
+        guard components.count >= 2 else { return nil }
+
+        let combined = components.joined(separator: "|")
+        let digest = SHA256.hash(data: Data(combined.utf8))
+        return digest.prefix(8).map { String(format: "%02x", $0) }.joined()
     }
 }
 
-// MARK: - CBCentralManagerDelegate
+// MARK: - LandmarkScanDelegate
 
-extension LandmarkTracker: CBCentralManagerDelegate {
-    nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        let stateNames = ["unknown", "resetting", "unsupported", "unauthorized", "poweredOff", "poweredOn"]
-        let stateName = central.state.rawValue < stateNames.count ? stateNames[central.state.rawValue] : "?"
-        print("[Landmarks] Bluetooth state: \(stateName) (\(central.state.rawValue))")
-
-        if central.state == .poweredOn {
-            Task { @MainActor in
-                beginScanning()
-            }
+extension LandmarkTracker: LandmarkScanDelegate {
+    nonisolated func didDiscoverLandmark(peripheral: CBPeripheral, advertisementData: [String: Any], rssi: Int) {
+        // Skip Marco devices
+        if let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String, name.hasPrefix("MR-") {
+            return
         }
-    }
-
-    nonisolated func centralManager(
-        _ central: CBCentralManager,
-        didDiscover peripheral: CBPeripheral,
-        advertisementData: [String: Any],
-        rssi RSSI: NSNumber
-    ) {
-        let rssi = RSSI.intValue
-        guard rssi != 127 && rssi < 0 else { return }
 
         Task { @MainActor in
-            let id = stableID(peripheral: peripheral, advertisementData: advertisementData)
-            let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String
+            // Generate cross-device stable ID — skip devices we can't identify reliably
+            guard let id = stableID(advertisementData: advertisementData) else { return }
 
+            let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String
             var mfgID: UInt16?
             if let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data, mfg.count >= 2 {
                 mfgID = UInt16(mfg[0]) | (UInt16(mfg[1]) << 8)
             }
-
-            // Skip Marco devices — they're contacts, not landmarks
-            if let n = name, n.hasPrefix("MR-") { return }
 
             if var landmark = landmarks[id] {
                 let smoothed = landmark.rssiFilter.update(measurement: Double(rssi))
@@ -280,7 +201,7 @@ extension LandmarkTracker: CBCentralManagerDelegate {
                 )
                 totalDevicesSeen += 1
 
-                let mfgName = mfgID.flatMap { knownManufacturers[$0] } ?? mfgID.map { String(format: "0x%04X", $0) } ?? "???"
+                let mfgName = mfgID.flatMap { knownManufacturers[$0] } ?? "???"
                 print("[Landmarks] NEW #\(totalDevicesSeen): \(name ?? "unnamed") | \(mfgName) | RSSI=\(rssi) | id=\(id.prefix(12))")
             }
 

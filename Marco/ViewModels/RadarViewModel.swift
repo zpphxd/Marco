@@ -11,7 +11,9 @@ class RadarViewModel: ObservableObject {
         didSet {
             if !myPhoneNumber.isEmpty {
                 myHash = CryptoUtils.hashPhoneNumber(myPhoneNumber)
-                meshManager?.updateMyHash(myHash)
+                peripheralManager.updateHash(myHash)
+                // Persist
+                UserDefaults.standard.set(myPhoneNumber, forKey: "marco_phone_number")
             } else {
                 myHash = ""
             }
@@ -19,43 +21,44 @@ class RadarViewModel: ObservableObject {
     }
 
     let contactManager = ContactHashManager()
-    let scanner = BLEScanner()
-    let advertiser = BLEAdvertiser()
+    let centralManager = BLECentralManager()
+    let peripheralManager = BLEPeripheralManager()
     let landmarkTracker = LandmarkTracker()
-    var meshManager: MeshManager?
 
-    private var staleTimer: Timer?
-    private var beaconTimer: Timer?
-    // Landmark fingerprints received from nearby devices, keyed by hash
+    // Landmark fingerprints received from peers, keyed by hash
     private var receivedFingerprints: [String: [LandmarkSighting]] = [:]
+    private var staleTimer: Timer?
+    private var landmarkUpdateTimer: Timer?
 
     init() {
-        scanner.delegate = self
+        centralManager.peerDelegate = self
+        centralManager.landmarkDelegate = landmarkTracker
+
+        // Wire mesh message handling
+        peripheralManager.onMeshMessageReceived = { [weak self] data, central in
+            Task { @MainActor [weak self] in
+                self?.handleMeshMessage(data)
+            }
+        }
+
+        // Load persisted phone number
+        if let saved = UserDefaults.standard.string(forKey: "marco_phone_number"), !saved.isEmpty {
+            myPhoneNumber = saved
+        }
+
+        // Load contacts if already authorized
         contactManager.checkExistingAuthorization()
     }
+
+    // MARK: - Lifecycle
 
     func startRadar() {
         guard !myHash.isEmpty else { return }
 
-        // Layer 2: Direct BLE
-        advertiser.start(hash: myHash)
-        scanner.start()
-
-        // Layer 3: Mesh relay
-        if meshManager == nil {
-            meshManager = MeshManager(myHash: myHash, contactManager: contactManager)
-            meshManager?.delegate = self
-            meshManager?.setLandmarkProvider { [weak self] in
-                self?.landmarkTracker.currentFingerprint() ?? []
-            }
-        }
-        meshManager?.start()
-
-        // Layer 4: Landmark tracking
+        peripheralManager.updateHash(myHash)
+        peripheralManager.start()
+        centralManager.start()
         landmarkTracker.start()
-
-        // Auto-search for all contact hashes via mesh
-        searchContactsViaMesh()
 
         status = .scanning
 
@@ -65,68 +68,72 @@ class RadarViewModel: ObservableObject {
             }
         }
 
-        // Broadcast landmark fingerprint every 5 seconds to nearby peers
-        beaconTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+        // Update peripheral's landmark data periodically
+        landmarkUpdateTimer = Timer.scheduledTimer(withTimeInterval: MarcoGATT.landmarkReadInterval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.meshManager?.broadcastBeacon()
+                guard let self = self else { return }
+                let fingerprint = self.landmarkTracker.currentFingerprint()
+                self.peripheralManager.updateLandmarks(fingerprint)
             }
         }
+
+        print("[Radar] Started — hash: \(myHash)")
     }
 
     func stopRadar() {
-        advertiser.stop()
-        scanner.stop()
-        meshManager?.stop()
+        peripheralManager.stop()
+        centralManager.stop()
         landmarkTracker.stop()
         staleTimer?.invalidate()
-        beaconTimer?.invalidate()
+        landmarkUpdateTimer?.invalidate()
         staleTimer = nil
-        beaconTimer = nil
-        receivedFingerprints.removeAll()
+        landmarkUpdateTimer = nil
         status = .off
         nearbyContacts.removeAll()
+        receivedFingerprints.removeAll()
+        print("[Radar] Stopped")
     }
 
     var isRadarActive: Bool { status != .off }
 
-    /// Search for up to 10 favorite/recent contacts via mesh
-    private func searchContactsViaMesh() {
-        guard let mesh = meshManager else { return }
-        // Search for all contact hashes — in a real app you'd limit this
-        // For demo, search for a few
-        var count = 0
-        for (hash, _) in contactManager.hashToContact {
-            guard count < 10 else { break }
-            mesh.searchForHash(hash)
-            count += 1
-        }
-    }
-
     // MARK: - Discovery Processing
 
-    @MainActor private var discoveryLogCounter = 0
+    private var discoveryLogCounter = 0
 
     private func processDiscovery(hash: String, rssi: Int) {
         guard hash != myHash else { return }
 
         let distance = DistanceEstimate.from(rssi: rssi)
         discoveryLogCounter += 1
-        if discoveryLogCounter % 10 == 0 {
-            let isKnown = contactManager.lookup(hash) != nil
-            print("[Radar] Signal: hash=\(hash.prefix(8)) RSSI=\(rssi) dist=\(distance.rawValue) known=\(isKnown) contacts=\(nearbyContacts.count)")
-        }
 
-        // Try landmark-based position estimation if we have their fingerprint
+        // Try landmark-based position estimation
+        var landmarkDistance: Double?
         if let theirLandmarks = receivedFingerprints[hash], !theirLandmarks.isEmpty {
             let myLandmarks = landmarkTracker.currentFingerprint()
             if let position = PositionEstimator.estimate(myFingerprint: myLandmarks, theirFingerprint: theirLandmarks) {
-                print("[Radar] Landmark position for \(hash.prefix(8)): \(String(format: "%.1f", position.estimatedDistance))m confidence=\(String(format: "%.0f", position.confidence * 100))% shared=\(position.sharedLandmarkCount)")
+                landmarkDistance = position.estimatedDistance
+                if discoveryLogCounter % 10 == 0 {
+                    print("[Radar] Landmark position for \(hash.prefix(8)): \(String(format: "%.1f", position.estimatedDistance))m confidence=\(String(format: "%.0f", position.confidence * 100))% shared=\(position.sharedLandmarkCount)")
+                }
             }
+        }
+
+        // Use landmark distance if available and confident, otherwise RSSI
+        let effectiveDistance: DistanceEstimate
+        if let ld = landmarkDistance, ld > 0 {
+            switch ld {
+            case ..<2: effectiveDistance = .veryClose
+            case ..<5: effectiveDistance = .nearby
+            case ..<15: effectiveDistance = .inRange
+            default: effectiveDistance = .far
+            }
+        } else {
+            effectiveDistance = distance
         }
 
         if let index = nearbyContacts.firstIndex(where: { $0.id == hash }) {
             nearbyContacts[index].rssi = rssi
-            nearbyContacts[index].distance = distance
+            nearbyContacts[index].distance = effectiveDistance
             nearbyContacts[index].lastSeen = Date()
             nearbyContacts[index].rssiHistory.append(rssi)
             if nearbyContacts[index].rssiHistory.count > 20 {
@@ -139,7 +146,7 @@ class RadarViewModel: ObservableObject {
                 name: contact?.name ?? "Unknown Device",
                 phoneNumber: contact?.phoneNumber,
                 rssi: rssi,
-                distance: distance,
+                distance: effectiveDistance,
                 firstSeen: Date(),
                 lastSeen: Date(),
                 rssiHistory: [rssi]
@@ -148,56 +155,91 @@ class RadarViewModel: ObservableObject {
 
             if contact != nil {
                 status = .found
-                print("[Radar] CONTACT FOUND: \(nearby.name) — \(distance.rawValue)")
+                print("[Radar] CONTACT FOUND: \(nearby.name) — \(effectiveDistance.rawValue)")
+            }
+        }
+
+        if discoveryLogCounter % 10 == 0 {
+            let isKnown = contactManager.lookup(hash) != nil
+            print("[Radar] Signal: hash=\(hash.prefix(8)) RSSI=\(rssi) dist=\(effectiveDistance.rawValue) known=\(isKnown) contacts=\(nearbyContacts.count) landmarks=\(landmarkTracker.landmarkCount) peers=\(centralManager.connectedPeerCount)")
+        }
+    }
+
+    // MARK: - Mesh
+
+    private let dedup = DeduplicationCache()
+
+    private func handleMeshMessage(_ data: Data) {
+        guard let envelope = try? JSONDecoder().decode(MeshEnvelope.self, from: data) else { return }
+
+        Task {
+            switch envelope.type {
+            case .search:
+                if let search = envelope.unwrapSearch() {
+                    await handleMeshSearch(search)
+                }
+            case .found:
+                if let found = envelope.unwrapFound() {
+                    handleMeshFound(found)
+                }
+            case .beacon:
+                break // landmarks come via GATT characteristic read now
             }
         }
     }
 
-    private func processMeshFound(name: String, hash: String, hopCount: Int, rssiAtFind: Int, landmarks: [LandmarkSighting]?) {
-        // Compute distance from landmarks if available
-        var meshDistance: Double?
-        if let theirLandmarks = landmarks {
-            let myLandmarks = landmarkTracker.currentFingerprint()
-            if let position = PositionEstimator.estimate(myFingerprint: myLandmarks, theirFingerprint: theirLandmarks) {
-                meshDistance = position.estimatedDistance
-                print("[Radar] Landmark position: \(position.estimatedDistance)m, confidence: \(position.confidence), shared: \(position.sharedLandmarkCount)")
+    private func handleMeshSearch(_ search: MeshSearch) async {
+        guard await dedup.shouldProcess(search.id) else { return }
+
+        // Check if it's us they're looking for
+        if search.queryHash == myHash {
+            let found = MeshFound.create(search: search, rssi: 0, landmarks: landmarkTracker.currentFingerprint())
+            if let data = MeshEnvelope.wrap(found) {
+                centralManager.broadcastMeshMessage(data)
+                print("[Mesh] I'm the target! Responding to search \(search.id.prefix(8))")
             }
+            return
         }
 
-        // Estimate distance from hop count if no landmark data
-        let estimatedDistance = meshDistance ?? Double(hopCount) * 30.0
+        // Forward with decremented TTL
+        guard search.ttl > 0 else { return }
+        var forwarded = search
+        forwarded.ttl -= 1
+        forwarded.hopCount += 1
+        if let data = MeshEnvelope.wrap(forwarded) {
+            centralManager.broadcastMeshMessage(data)
+            print("[Mesh] Relayed search for \(search.queryHash.prefix(8)) (TTL=\(forwarded.ttl))")
+        }
+    }
 
-        let id = "mesh-\(hash)"
-        if let index = nearbyContacts.firstIndex(where: { $0.id == id }) {
-            nearbyContacts[index].lastSeen = Date()
-        } else {
-            // For mesh contacts, rssiAtFind of 0 means "found self" — estimate
-            // distance from hops or landmarks instead of using raw RSSI
-            let effectiveRSSI = rssiAtFind == 0 ? -80 : rssiAtFind
-            let meshDist: DistanceEstimate = meshDistance.map { dist in
-                switch dist {
-                case ..<2: return .veryClose
-                case ..<5: return .nearby
-                case ..<15: return .inRange
-                default: return .far
-                }
-            } ?? .from(rssi: effectiveRSSI)
+    private func handleMeshFound(_ found: MeshFound) {
+        let contact = contactManager.lookup(found.queryHash)
+        let name = contact?.name ?? "Unknown"
+        print("[Mesh] FOUND: \(name) hash=\(found.queryHash.prefix(8)) hops=\(found.hopCount)")
 
+        // Store their landmarks for position estimation
+        if let landmarks = found.landmarks {
+            receivedFingerprints[found.queryHash] = landmarks
+        }
+
+        let id = "mesh-\(found.queryHash)"
+        if nearbyContacts.firstIndex(where: { $0.id == id }) == nil {
             let nearby = NearbyContact(
                 id: id,
                 name: name,
-                phoneNumber: contactManager.lookup(hash)?.phoneNumber,
-                rssi: effectiveRSSI,
-                distance: meshDist,
+                phoneNumber: contact?.phoneNumber,
+                rssi: -80,
+                distance: .far,
                 firstSeen: Date(),
                 lastSeen: Date(),
-                rssiHistory: [effectiveRSSI]
+                rssiHistory: [-80]
             )
             nearbyContacts.append(nearby)
             status = .found
-            print("[Radar] MESH FOUND: \(name) — \(hopCount) hops, ~\(Int(estimatedDistance))m")
         }
     }
+
+    // MARK: - Stale Removal
 
     private func removeStaleContacts() {
         let cutoff = Date().addingTimeInterval(-MarcoConstants.staleTimeout)
@@ -208,31 +250,37 @@ class RadarViewModel: ObservableObject {
     }
 }
 
-// MARK: - BLEScannerDelegate
+// MARK: - MarcoPeerDelegate
 
-extension RadarViewModel: BLEScannerDelegate {
-    nonisolated func scanner(_ scanner: BLEScanner, didDiscover hash: String, rssi: Int) {
+extension RadarViewModel: MarcoPeerDelegate {
+    nonisolated func didDiscoverPeer(hash: String, rssi: Int, peripheral: CBPeripheral) {
         Task { @MainActor in
             processDiscovery(hash: hash, rssi: rssi)
         }
     }
-}
 
-// MARK: - MeshManagerDelegate
-
-extension RadarViewModel: MeshManagerDelegate {
-    nonisolated func meshManager(_ manager: MeshManager, didFindContact name: String, hash: String, hopCount: Int, rssiAtFind: Int, landmarks: [LandmarkSighting]?) {
+    nonisolated func didReceiveLandmarks(_ landmarks: [LandmarkSighting], from hash: String) {
         Task { @MainActor in
-            processMeshFound(name: name, hash: hash, hopCount: hopCount, rssiAtFind: rssiAtFind, landmarks: landmarks)
+            receivedFingerprints[hash] = landmarks
+            print("[Radar] Stored \(landmarks.count) landmarks from \(hash.prefix(8))")
         }
     }
 
-    nonisolated func meshManager(_ manager: MeshManager, didRelaySearch hash: String, hops: Int) {}
-
-    nonisolated func meshManager(_ manager: MeshManager, didReceiveBeacon senderHash: String, landmarks: [LandmarkSighting]) {
+    nonisolated func didReceiveMeshMessage(_ data: Data, from peripheral: CBPeripheral) {
         Task { @MainActor in
-            receivedFingerprints[senderHash] = landmarks
-            print("[Radar] Stored fingerprint from \(senderHash.prefix(8)): \(landmarks.count) landmarks")
+            handleMeshMessage(data)
         }
+    }
+
+    nonisolated func didReceiveKeepalive(from peripheral: CBPeripheral) {
+        // Connection is alive — nothing specific to do
+    }
+
+    nonisolated func didConnectPeer(_ peripheral: CBPeripheral) {
+        print("[Radar] Peer connected: \(peripheral.identifier.uuidString.prefix(8))")
+    }
+
+    nonisolated func didDisconnectPeer(_ peripheral: CBPeripheral) {
+        print("[Radar] Peer disconnected: \(peripheral.identifier.uuidString.prefix(8))")
     }
 }
