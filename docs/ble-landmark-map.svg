@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" style="background:#0a0a0a">
+<text x="400" y="30" text-anchor="middle" fill="white" font-family="monospace" font-size="16" font-weight="bold">Marco — BLE Landmark Map of Your Home</text>
+<text x="400" y="50" text-anchor="middle" fill="#666" font-family="monospace" font-size="11">Generated from passive BLE scan data • No GPS • No internet</text>
+<circle cx="400" cy="300" r="24" fill="none" stroke="white" stroke-opacity="0.08" stroke-dasharray="4,4"/>
+<text x="427" y="297" fill="#444" font-family="monospace" font-size="9">2m</text>
+<circle cx="400" cy="300" r="60" fill="none" stroke="white" stroke-opacity="0.15" stroke-dasharray="4,4"/>
+<text x="463" y="297" fill="#444" font-family="monospace" font-size="9">5m</text>
+<circle cx="400" cy="300" r="120" fill="none" stroke="white" stroke-opacity="0.15" stroke-dasharray="4,4"/>
+<text x="523" y="297" fill="#444" font-family="monospace" font-size="9">10m</text>
+<circle cx="400" cy="300" r="180" fill="none" stroke="white" stroke-opacity="0.15" stroke-dasharray="4,4"/>
+<text x="583" y="297" fill="#444" font-family="monospace" font-size="9">15m</text>
+<circle cx="400" cy="300" r="240" fill="none" stroke="white" stroke-opacity="0.15" stroke-dasharray="4,4"/>
+<text x="643" y="297" fill="#444" font-family="monospace" font-size="9">20m</text>
+<circle cx="400" cy="300" r="300" fill="none" stroke="white" stroke-opacity="0.15" stroke-dasharray="4,4"/>
+<text x="703" y="297" fill="#444" font-family="monospace" font-size="9">25m</text>
+<circle cx="400" cy="300" r="8" fill="#00ff88" opacity="0.9"/>
+<text x="400" y="322" text-anchor="middle" fill="#00ff88" font-family="monospace" font-size="10" font-weight="bold">📱 Your Phone</text>
+<circle cx="415.5884572681199" cy="291.0" r="8" fill="#ff6688" opacity="0.9"/>
+<text x="415.5884572681199" y="313.0" text-anchor="middle" fill="#ff6688" font-family="monospace" font-size="10" font-weight="bold">📱 Hubs' Phone</text>
+<line x1="400" y1="300" x2="415.5884572681199" y2="291.0" stroke="#00ff88" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="6,4"/>
+<circle cx="397.2643523715408" cy="312.87021020177264" r="14" fill="#ff9500" opacity="0.1"/>
+<circle cx="397.2643523715408" cy="312.87021020177264" r="8" fill="#ff9500" opacity="0.7"/>
+<text x="397.2643523715408" y="300.87021020177264" text-anchor="middle" fill="#ff9500" font-family="monospace" font-size="8" opacity="0.8">S31 3FB8 LE</text>
+<text x="397.2643523715408" y="310.87021020177264" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">1.1m</text>
+<circle cx="405.64706990248874" cy="283.5997181621965" r="14" fill="#ff9500" opacity="0.1"/>
+<circle cx="405.64706990248874" cy="283.5997181621965" r="8" fill="#ff9500" opacity="0.7"/>
+<text x="405.64706990248874" y="271.5997181621965" text-anchor="middle" fill="#ff9500" font-family="monospace" font-size="8" opacity="0.8">S38 6D4A LE</text>
+<text x="405.64706990248874" y="281.5997181621965" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">1.4m</text>
+<circle cx="414.5469735215487" cy="309.44691506293685" r="14" fill="#ff9500" opacity="0.1"/>
+<circle cx="414.5469735215487" cy="309.44691506293685" r="8" fill="#ff9500" opacity="0.7"/>
+<text x="414.5469735215487" y="297.44691506293685" text-anchor="middle" fill="#ff9500" font-family="monospace" font-size="8" opacity="0.8">Sonos</text>
+<text x="414.5469735215487" y="307.44691506293685" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">1.4m</text>
+<line x1="415.5884572681199" y1="291.0" x2="414.5469735215487" y2="309.44691506293685" stroke="#ff9500" stroke-opacity="0.1" stroke-width="1"/>
+<circle cx="381.66382649105543" cy="317.09875841912856" r="14" fill="#3478f6" opacity="0.1"/>
+<circle cx="381.66382649105543" cy="317.09875841912856" r="8" fill="#3478f6" opacity="0.7"/>
+<text x="381.66382649105543" y="305.09875841912856" text-anchor="middle" fill="#3478f6" font-family="monospace" font-size="8" opacity="0.8">Samsung S95CA 65</text>
+<text x="381.66382649105543" y="315.09875841912856" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">2.1m</text>
+<circle cx="403.3502384400508" cy="272.7144975279091" r="14" fill="#bf5af2" opacity="0.1"/>
+<circle cx="403.3502384400508" cy="272.7144975279091" r="8" fill="#bf5af2" opacity="0.7"/>
+<text x="403.3502384400508" y="260.7144975279091" text-anchor="middle" fill="#bf5af2" font-family="monospace" font-size="8" opacity="0.8">LAP-V201S-WUS</text>
+<text x="403.3502384400508" y="270.7144975279091" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">2.3m</text>
+<line x1="415.5884572681199" y1="291.0" x2="403.3502384400508" y2="272.7144975279091" stroke="#bf5af2" stroke-opacity="0.1" stroke-width="1"/>
+<circle cx="403.7880509497135" cy="336.0408973067387" r="14" fill="#ff9500" opacity="0.1"/>
+<circle cx="403.7880509497135" cy="336.0408973067387" r="8" fill="#ff9500" opacity="0.7"/>
+<text x="403.7880509497135" y="324.0408973067387" text-anchor="middle" fill="#ff9500" font-family="monospace" font-size="8" opacity="0.8">S37 E764 LE</text>
+<text x="403.7880509497135" y="334.0408973067387" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">3.0m</text>
+<circle cx="386.53632529497287" cy="258.5630700104552" r="14" fill="#ff9500" opacity="0.1"/>
+<circle cx="386.53632529497287" cy="258.5630700104552" r="8" fill="#ff9500" opacity="0.7"/>
+<text x="386.53632529497287" y="246.5630700104552" text-anchor="middle" fill="#ff9500" font-family="monospace" font-size="8" opacity="0.8">S38 6C5E LE</text>
+<text x="386.53632529497287" y="256.5630700104552" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">3.6m</text>
+<circle cx="417.89602851705916" cy="344.2942249109363" r="14" fill="#8e8e93" opacity="0.1"/>
+<circle cx="417.89602851705916" cy="344.2942249109363" r="8" fill="#8e8e93" opacity="0.7"/>
+<text x="417.89602851705916" y="332.2942249109363" text-anchor="middle" fill="#8e8e93" font-family="monospace" font-size="8" opacity="0.8">MagniFi Mini AX-6856</text>
+<text x="417.89602851705916" y="342.2942249109363" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">4.0m</text>
+<circle cx="350.25930172394845" cy="328.7178055393583" r="14" fill="#8e8e93" opacity="0.1"/>
+<circle cx="350.25930172394845" cy="328.7178055393583" r="8" fill="#8e8e93" opacity="0.7"/>
+<text x="350.25930172394845" y="316.7178055393583" text-anchor="middle" fill="#8e8e93" font-family="monospace" font-size="8" opacity="0.8">4.1.1-3-0</text>
+<text x="350.25930172394845" y="326.7178055393583" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">4.8m</text>
+<line x1="415.5884572681199" y1="291.0" x2="350.25930172394845" y2="328.7178055393583" stroke="#8e8e93" stroke-opacity="0.1" stroke-width="1"/>
+<circle cx="322.4944176526632" cy="270.2483944223816" r="8" fill="#ff2d55" opacity="0.7"/>
+<text x="322.4944176526632" y="258.2483944223816" text-anchor="middle" fill="#ff2d55" font-family="monospace" font-size="8" opacity="0.8">M10EX75</text>
+<text x="322.4944176526632" y="268.2483944223816" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">6.9m</text>
+<line x1="415.5884572681199" y1="291.0" x2="322.4944176526632" y2="270.2483944223816" stroke="#ff2d55" stroke-opacity="0.1" stroke-width="1"/>
+<circle cx="270.4215725715221" cy="277.15182712658554" r="7.258804509642037" fill="#ff2d55" opacity="0.7"/>
+<text x="270.4215725715221" y="265.8930226169435" text-anchor="middle" fill="#ff2d55" font-family="monospace" font-size="8" opacity="0.8">M10F4E7</text>
+<text x="270.4215725715221" y="275.8930226169435" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">11.0m</text>
+<circle cx="255.72826784591044" cy="300.0" r="6.994338913456467" fill="#ff2d55" opacity="0.7"/>
+<text x="255.72826784591044" y="289.0056610865435" text-anchor="middle" fill="#ff2d55" font-family="monospace" font-size="8" opacity="0.8">M10F7RF</text>
+<text x="255.72826784591044" y="299.0056610865435" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">12.0m</text>
+<circle cx="273.8170998748968" cy="230.0556763220946" r="6.994338913456467" fill="#ff2d55" opacity="0.7"/>
+<text x="273.8170998748968" y="219.06133740863814" text-anchor="middle" fill="#ff2d55" font-family="monospace" font-size="8" opacity="0.8">M10F77J</text>
+<text x="273.8170998748968" y="229.06133740863814" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">12.0m</text>
+<circle cx="380.7213900199264" cy="142.98832167247167" r="6.704358153608982" fill="#ffd60a" opacity="0.7"/>
+<text x="380.7213900199264" y="132.2839635188627" text-anchor="middle" fill="#ffd60a" font-family="monospace" font-size="8" opacity="0.8">LE-Bose Revolve</text>
+<text x="380.7213900199264" y="142.2839635188627" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">13.2m</text>
+<circle cx="509.1573666117777" cy="434.79812164373845" r="6.386400573135182" fill="#8e8e93" opacity="0.7"/>
+<text x="509.1573666117777" y="424.4117210706033" text-anchor="middle" fill="#8e8e93" font-family="monospace" font-size="8" opacity="0.8">net</text>
+<text x="509.1573666117777" y="434.4117210706033" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">14.5m</text>
+<line x1="415.5884572681199" y1="291.0" x2="509.1573666117777" y2="434.79812164373845" stroke="#8e8e93" stroke-opacity="0.1" stroke-width="1"/>
+<circle cx="226.57364520787627" cy="296.9728317168394" r="6.386400573135182" fill="#3478f6" opacity="0.7"/>
+<text x="226.57364520787627" y="286.5864311437042" text-anchor="middle" fill="#3478f6" font-family="monospace" font-size="8" opacity="0.8">[TV] TeeVee</text>
+<text x="226.57364520787627" y="296.5864311437042" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">14.5m</text>
+<circle cx="380.1200260178409" cy="489.14531780672394" r="6.037767018847217" fill="#8e8e93" opacity="0.7"/>
+<text x="380.1200260178409" y="479.10755078787673" text-anchor="middle" fill="#8e8e93" font-family="monospace" font-size="8" opacity="0.8">D3400_3861018</text>
+<text x="380.1200260178409" y="489.10755078787673" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">15.8m</text>
+<circle cx="191.49566160808848" cy="296.36054323555413" r="5.655497928126562" fill="#5ac8fa" opacity="0.7"/>
+<text x="191.49566160808848" y="286.70504530742755" text-anchor="middle" fill="#5ac8fa" font-family="monospace" font-size="8" opacity="0.8">iO Sense</text>
+<text x="191.49566160808848" y="296.70504530742755" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">17.4m</text>
+<circle cx="613.468099569975" cy="218.0572739477273" r="5.236348205091882" fill="#30d158" opacity="0.7"/>
+<text x="613.468099569975" y="208.82092574263544" text-anchor="middle" fill="#30d158" font-family="monospace" font-size="8" opacity="0.8">Tile</text>
+<text x="613.468099569975" y="218.82092574263544" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">19.1m</text>
+<circle cx="627.402688573432" cy="276.09901432013066" r="5.236348205091882" fill="#8e8e93" opacity="0.7"/>
+<text x="627.402688573432" y="266.8626661150388" text-anchor="middle" fill="#8e8e93" font-family="monospace" font-size="8" opacity="0.8">13ACX100VI-13AC</text>
+<text x="627.402688573432" y="276.8626661150388" text-anchor="middle" fill="#555" font-family="monospace" font-size="7">19.1m</text>
+<circle cx="187.38116727066932" cy="167.14100778870548" r="4.776759672864901" fill="#ff2d55" opacity="0.7"/>
+<circle cx="601.0521445325599" cy="487.4841578769416" r="4.2728308680805664" fill="#ff2d55" opacity="0.7"/>
+<circle cx="701.9335745492143" cy="165.57051155294644" r="3.1144282416545845" fill="#3478f6" opacity="0.7"/>
+<circle cx="388.46545653399" cy="60" r="3.1144282416545845" fill="#ff2d55" opacity="0.7"/>
+<circle cx="40" cy="268.4152637695554" r="3" fill="#ff2d55" opacity="0.7"/>
+<rect x="20" y="480" width="180" height="110" rx="8" fill="white" fill-opacity="0.05" stroke="white" stroke-opacity="0.1"/>
+<text x="30" y="496" fill="white" font-family="monospace" font-size="10" font-weight="bold">Device Types</text>
+<circle cx="36" cy="510" r="4" fill="#ff9500"/>
+<text x="46" y="513" fill="#aaa" font-family="monospace" font-size="9">Sonos</text>
+<circle cx="36" cy="522" r="4" fill="#3478f6"/>
+<text x="46" y="525" fill="#aaa" font-family="monospace" font-size="9">Samsung</text>
+<circle cx="36" cy="534" r="4" fill="#ff2d55"/>
+<text x="46" y="537" fill="#aaa" font-family="monospace" font-size="9">Xiaomi</text>
+<circle cx="36" cy="546" r="4" fill="#5ac8fa"/>
+<text x="46" y="549" fill="#aaa" font-family="monospace" font-size="9">Oral-B</text>
+<circle cx="36" cy="558" r="4" fill="#bf5af2"/>
+<text x="46" y="561" fill="#aaa" font-family="monospace" font-size="9">LG</text>
+<circle cx="36" cy="570" r="4" fill="#30d158"/>
+<text x="46" y="573" fill="#aaa" font-family="monospace" font-size="9">Tile</text>
+<circle cx="36" cy="582" r="4" fill="#ffd60a"/>
+<text x="46" y="585" fill="#aaa" font-family="monospace" font-size="9">Bose</text>
+<circle cx="36" cy="594" r="4" fill="#8e8e93"/>
+<text x="46" y="597" fill="#aaa" font-family="monospace" font-size="9">Unknown</text>
+<rect x="600" y="480" width="180" height="110" rx="8" fill="white" fill-opacity="0.05" stroke="white" stroke-opacity="0.1"/>
+<text x="610" y="496" fill="white" font-family="monospace" font-size="10" font-weight="bold">Scan Results</text>
+<text x="610" y="514" fill="#aaa" font-family="monospace" font-size="9">Devices found: 52+</text>
+<text x="610" y="528" fill="#aaa" font-family="monospace" font-size="9">Stable landmarks: 25</text>
+<text x="610" y="542" fill="#aaa" font-family="monospace" font-size="9">Shared (both phones): 11</text>
+<text x="610" y="556" fill="#aaa" font-family="monospace" font-size="9">Confidence: 95%</text>
+<text x="610" y="570" fill="#aaa" font-family="monospace" font-size="9">Method: trilateration</text>
+<text x="610" y="584" fill="#aaa" font-family="monospace" font-size="9">Infrastructure: NONE</text>
+</svg>
