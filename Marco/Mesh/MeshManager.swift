@@ -106,7 +106,14 @@ class MeshManager: NSObject, ObservableObject {
     // MARK: - Beacon (landmark fingerprint exchange)
 
     func broadcastBeacon() {
-        guard let session = session, !session.connectedPeers.isEmpty else { return }
+        guard let session = session else {
+            print("[Mesh] Beacon skip: no session")
+            return
+        }
+        guard !session.connectedPeers.isEmpty else {
+            // Only log occasionally to avoid spam
+            return
+        }
         let landmarks = landmarkProvider?() ?? []
         guard !landmarks.isEmpty else { return }
 

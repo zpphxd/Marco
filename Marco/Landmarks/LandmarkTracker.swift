@@ -250,6 +250,9 @@ extension LandmarkTracker: CBCentralManagerDelegate {
                 mfgID = UInt16(mfg[0]) | (UInt16(mfg[1]) << 8)
             }
 
+            // Skip Marco devices — they're contacts, not landmarks
+            if let n = name, n.hasPrefix("MR-") { return }
+
             if var landmark = landmarks[id] {
                 let smoothed = landmark.rssiFilter.update(measurement: Double(rssi))
                 landmark.smoothedRSSI = smoothed
